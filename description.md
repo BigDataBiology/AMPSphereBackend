@@ -1,14 +1,33 @@
-AMPSphereBackend API helps you easy-access the AMPSphere data. 🚀
+AMPSphere API helps you easily access the AMPSphere data. 🚀
 
-## AMPs
+![](https://img.shields.io/badge/Version-0.1.0-Green)
+![](https://img.shields.io/badge/Status-Beta-yellow)
+![](https://img.shields.io/badge/Production_ready-Not_yet-red)
 
-You can **read a list of AMPs**.
+## API status
 
-You can **read a single AMP**.
+| API                                         | Description                                                                 |                         Status                         |                           Public use                           |                       Production ready                       |
+| --------------------------------------------- | :---------------------------------------------------------------------------- | :-------------------------------------------------------: | :--------------------------------------------------------------: | :------------------------------------------------------------: |
+| `/v1/amps`                                  | Get a list of Antimicrobial peptides based on filter criteria.              |  ![](https://img.shields.io/badge/Status-Beta-yellow)  |    ![](https://img.shields.io/badge/Public_use-Okay-Green)    |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/amps/{accession}`                      | Get all information of an AMP.                                              |  ![](https://img.shields.io/badge/Status-Stable-Green)  |    ![](https://img.shields.io/badge/Public_use-Okay-Green)    | ![](https://img.shields.io/badge/Production_ready-Yes-Green) |
+| `/v1/amps/{accession}/helicalwheel`         | Get helical_wheel graph of an AMP.                                          |  ![](https://img.shields.io/badge/Status-Beta-yellow)  |    ![](https://img.shields.io/badge/Public_use-Okay-Green)    |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/amps/{accession}/features`             | Get all features graph of an AMP.                                           | ![](https://img.shields.io/badge/Status-Deprecated-red) |    ![](https://img.shields.io/badge/Public_use-Okay-Green)    |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/amps/{accession}/distributions`        | Get geography, habitat and microbial source distributions of an AMP.        |  ![](https://img.shields.io/badge/Status-Stable-Green)  | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) | ![](https://img.shields.io/badge/Production_ready-Yes-Green) |
+| `/v1/amps/{accession}/metadata`             | Get metadata of an AMP.                                                     |  ![](https://img.shields.io/badge/Status-Stable-Green)  |    ![](https://img.shields.io/badge/Public_use-Okay-Green)    | ![](https://img.shields.io/badge/Production_ready-Yes-Green) |
+| `/v1/families/`                             | Get a list of AMP families.                                                 | ![](https://img.shields.io/badge/Status-Deprecated-red) | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/families/{accession}`                  | Get all information of an AMP family.                                       |  ![](https://img.shields.io/badge/Status-Stable-Green)  |    ![](https://img.shields.io/badge/Public_use-Okay-Green)    | ![](https://img.shields.io/badge/Production_ready-Yes-Green) |
+| `/v1/families/{accession}/features`         | Get features of all the AMPs belonging to an AMP family.                    |  ![](https://img.shields.io/badge/Status-Beta-yellow)  |    ![](https://img.shields.io/badge/Public_use-Okay-Green)    |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/families/{accession}/distributions`    | Get geography, habitat and microbial source distributions of an AMP family. |  ![](https://img.shields.io/badge/Status-Beta-yellow)  | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/families/{accession}/downloads`        | Get downloadable files of an AMP family.                                    |  ![](https://img.shields.io/badge/Status-Beta-yellow)  |    ![](https://img.shields.io/badge/Public_use-Okay-Green)    |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/families/{accession}/downloads/{file}` | File downloading API.                                                       |  ![](https://img.shields.io/badge/Status-Beta-yellow)  |    ![](https://img.shields.io/badge/Public_use-Okay-Green)    |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/statistics`                            | Get overall statistics of the AMPSphere data.                               |  ![](https://img.shields.io/badge/Status-Stable-Green)  | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) | ![](https://img.shields.io/badge/Production_ready-Yes-Green) |
+| `/v1/available_filters`                     | Get available filters and options for retrieving AMPs.                      |  ![](https://img.shields.io/badge/Status-Beta-yellow)  | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/downloads`                             | Get all downloadable files generated based on the AMPSphere data.           |  ![](https://img.shields.io/badge/Status-Beta-yellow)  | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/downloads/{file}`                      | File downloading API.                                                       |  ![](https://img.shields.io/badge/Status-Beta-yellow)  | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/search/text`                           | Search for AMPs by text.                                                    | ![](https://img.shields.io/badge/Status-Deprecated-red) | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/search/mmseqs`                         | Search for similar AMPs by input sequences.                                 |  ![](https://img.shields.io/badge/Status-Beta-yellow)  | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
+| `/v1/search/hmmer`                          | Search for AMP families by input sequences.                                 |  ![](https://img.shields.io/badge/Status-Beta-yellow)  | ![](https://img.shields.io/badge/Public_use-Not_suggested-red) |  ![](https://img.shields.io/badge/Production_ready-No-red)  |
 
-...
+## Issues reporting
 
-## Test list
-
-- [ ] "/amp"
-- [ ] "/amps"
+Please report issues at out [GitHub repository](https://github.com/BigDataBiology/AMPSphereWebsite/issues) or [Contact us](https://github.com/BigDataBiology/AMPSphereWebsite#authors).

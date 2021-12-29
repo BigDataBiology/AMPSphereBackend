@@ -15,8 +15,8 @@ with open('description.md', 'r') as f:
 
 
 app = FastAPI(
-    title="AMPSphereBackend",
-    # description=description,
+    title="AMPSphere API",
+    description=description,
     version="0.1.0",
     contact={
         "name": "Hui Chong",
