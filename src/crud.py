@@ -5,7 +5,7 @@ from pprint import pprint
 
 import pandas as pd
 from sqlalchemy.orm import Session, Query
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, not_
 from src import models
 from src import utils
 from sqlalchemy import distinct, func, true, false
@@ -14,36 +14,59 @@ from fastapi import HTTPException
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 
 
-def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
-    query = db.query(distinct(models.AMP.accession)).outerjoin(models.Metadata)
+def filter_by_criteria(query, query_table, **criteria):
+    table_cols_mapper = dict(
+        Metadata=dict(habitat='general_envo_name', microbial_source='microbial_source', sample_genome='sample'),
+        AMP=dict(pep_length_interval='length', mw_interval='molecular_weight', pI_interval='isoelectric_point',
+                 charge_interval='charge', family='family'),
+        Quality=dict(quality='badge')
+    )
 
-    # Mapping from filter keys to table columns
-    metadata_cols = {'habitat': 'general_envo_name', 'microbial_source': 'microbial_source', 'sample_genome': 'sample'}
-    AMP_cols = {
-        'pep_length_interval': 'length', 'mw_interval': 'molecular_weight',
-        'pI_interval': 'isoelectric_point', 'charge_interval': 'charge'}
-    for key, value in kwargs.items():
+    criteria = {key: value for key, value in criteria.items() if value}
+    print("Filters applied:", criteria)
+    # print('Query statement (original):', query)
+    query = join_necessary_tables(query, query_table, criteria, table_cols_mapper)
+    # print('Query statement (after joining):', query)
+
+    for key, value in criteria.items():
         if key in {'habitat', 'microbial_source', 'sample_genome'}:
-            if value:
-                query = query.filter(getattr(models.Metadata, metadata_cols[key]) == value)
+            query = query.filter(getattr(models.Metadata, table_cols_mapper['Metadata'][key]) == value)
+        elif key == 'quality':
+            query = query.filter(getattr(models.Quality, table_cols_mapper['Quality'][key]) == value)
         elif key == 'family':
-            if value:
-                query = query.filter(getattr(models.AMP, key) == value)
-        elif key in ['pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval']:
-            if value:
-                min_max: [str] = value.split(',')
-                col_values = getattr(models.AMP, AMP_cols[key])
-                query = query.filter(and_(float(min_max[0]) <= col_values, col_values <= float(min_max[1])))
-        else:
-            pass
+            query = query.filter(getattr(models.AMP, table_cols_mapper['AMP'][key]) == value)
+        elif key in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
+            min_max: [str] = value.split(',')
+            col_values = getattr(models.AMP, table_cols_mapper['AMP'][key])
+            query = query.filter(and_(float(min_max[0]) <= col_values, col_values <= float(min_max[1])))
+    return query
+
+
+def join_necessary_tables(query, query_table, criteria, table_cols_mapper):
+    table_entities = dict(Metadata=models.Metadata, AMP=models.AMP, Quality=models.Quality)
+    for filter_table_name, cols in table_cols_mapper.items():
+        if set(criteria.keys()).intersection(cols.keys()) and query_table != filter_table_name:
+            # print('Filter table: {}, Query table: {}. Joining filter table...'.format(filter_table_name, query_table))
+            if {filter_table_name, query_table} == {'Metadata', 'Quality'}:
+                query = query.join(table_entities[filter_table_name],
+                                   models.Metadata.AMPSphere_code == models.Quality.AMP)
+            else:
+                query = query.join(table_entities[filter_table_name])
+    return query
+
+
+def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
+    query = db.query(distinct(models.AMP.accession))
+    print(query)
+    query = filter_by_criteria(query=query, query_table="AMP", **kwargs)
     accessions = query.offset(page * page_size).limit(page_size).all()
-    # if len(accessions) == 0:
-    #     raise HTTPException(status_code=400, detail='invalid filter applied.')
+    print(accessions)
     data = [get_amp(accession, db) for accession, in accessions]
     info = get_query_page_info(q=query, page=page, page_size=page_size)
     paged_amps = types.SimpleNamespace()
     paged_amps.info = info
     paged_amps.data = data
+    print(paged_amps)
     return paged_amps
 
 
@@ -65,6 +88,7 @@ def get_amp(accession: str, db: Session):
 
 def get_amp_quality(accession, db):
     return db.query(models.Quality).filter(models.Quality.AMP == accession).first()
+
 
 def get_amp_helicalwheel(accession):
     return "data/pre_computed/amps/helical_wheels/helicalwheel_{}.svg".format(accession)
@@ -265,13 +289,44 @@ def get_query_page_info(q: Query, page_size: int, page: int):
     return info
 
 
-def get_filters(db: Session):
-    # FIXME not using the first 100 rows.
-    # TODO use query API to get filter suggestion, not all available filters (impossible).
-    family, = zip(*db.query(models.AMP.family).distinct())
+def get_filtered_options(db: Session, **kwargs):
+    habitat, = zip(*filter_by_criteria(
+        query=db.query(models.Metadata.general_envo_name), query_table="Metadata", **kwargs).distinct())
+    microbial_source, = zip(*filter_by_criteria(
+        query=db.query(models.Metadata.microbial_source), query_table="Metadata", **kwargs).distinct())
+    quality, = zip(*filter_by_criteria(
+        query=db.query(models.Quality.badge), query_table="Quality", **kwargs).distinct())
+    peplen_min, peplen_max, mw_min, mw_max, pI_min, pI_max, charge_min, charge_max = \
+        filter_by_criteria(
+            query=db.query(
+                func.min(models.AMP.length),
+                func.max(models.AMP.length),
+                func.min(models.AMP.molecular_weight),
+                func.max(models.AMP.molecular_weight),
+                func.min(models.AMP.isoelectric_point),
+                func.max(models.AMP.isoelectric_point),
+                func.min(models.AMP.charge),
+                func.max(models.AMP.charge)),
+            query_table="AMP",
+            **kwargs).first()
+    print('Query finished.')
+    round_floor = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_FLOOR)
+    round_ceiling = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_CEILING)
+    return dict(
+        quality=quality,
+        habitat=habitat,
+        microbial_source=microbial_source,   # FIXME query of distinct microbial sources of human gut is too slow.
+        pep_length=dict(min=int(peplen_min), max=int(peplen_max) + 1),
+        molecular_weight=dict(min=round_floor(mw_min), max=round_ceiling(mw_max)),
+        isoelectric_point=dict(min=round_floor(pI_min), max=round_ceiling(pI_max)),
+        charge_at_pH_7=dict(min=round_floor(charge_min), max=round_ceiling(charge_max))
+    )
+
+
+def get_all_options(db: Session):
     habitat, = zip(*db.query(models.Metadata.general_envo_name).distinct())
-    sample, = zip(*db.query(models.Metadata.sample).distinct())
     microbial_source, = zip(*db.query(models.Metadata.microbial_source).distinct())
+    quality, = zip(*db.query(models.Quality.badge).distinct())
     peplen_min, peplen_max, mw_min, mw_max, \
     pI_min, pI_max, charge_min, charge_max = db.query(
         func.min(models.AMP.length),
@@ -286,9 +341,8 @@ def get_filters(db: Session):
     round_floor = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_FLOOR)
     round_ceiling = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_CEILING)
     return dict(
-        family=family,
+        quality=quality,
         habitat=habitat,
-        sample=sample,
         microbial_source=microbial_source,
         pep_length=dict(min=int(peplen_min), max=int(peplen_max) + 1),
         molecular_weight=dict(min=round_floor(mw_min), max=round_ceiling(mw_max)),
@@ -343,10 +397,12 @@ def mmseqs_search(seq: str, db):
             df = pd.DataFrame(columns=columns)
         df.columns = columns
         format_alignment0 = lambda x: utils.format_alignment(
-            x['seq_query'], x['seq_target'], x['bit_score'], x['domain_start_position_target'] - 1, x['domain_end_position_target']
+            x['seq_query'], x['seq_target'], x['bit_score'], x['domain_start_position_target'] - 1,
+            x['domain_end_position_target']
         ).split('\n')[0:3]
         if df.shape[0] > 0:
-            df['alignment_strings'] = df[['seq_query', 'seq_target', 'bit_score','domain_start_position_target', 'domain_end_position_target']].apply(format_alignment0, axis=1)
+            df['alignment_strings'] = df[['seq_query', 'seq_target', 'bit_score', 'domain_start_position_target',
+                                          'domain_end_position_target']].apply(format_alignment0, axis=1)
             df['family'] = df['target_identifier'].apply(lambda x: get_family_by_amp(x, db))
         records = df.to_dict(orient='records')
         # pprint(records)
