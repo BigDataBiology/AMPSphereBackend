@@ -32,6 +32,7 @@ amp_router = APIRouter(
                 response_model=schemas.PagedAMPs,
                 summary=default_route_summary)
 def amps(db: Session = Depends(get_db),
+         quality: str = None,
          family: str = None,
          habitat: str = None,
          sample: str = None,
@@ -53,7 +54,7 @@ def amps(db: Session = Depends(get_db),
     - :param pI_interval: Isoelectric point interval (format: `min_pI,max_pI`, e.g., `4,12`).
     - :param charge_interval: Charge at pH 7 interval (format: `min_charge,max_charge`, e.g., `-57,44`).
     """
-    return crud.get_amps(db, page=page, page_size=page_size,
+    return crud.get_amps(db, page=page, page_size=page_size,quality=quality,
                          family=family, habitat=habitat, microbial_source=microbial_source, sample=sample,
                          pep_length_interval=pep_length_interval, mw_interval=mw_interval,
                          pI_interval=pI_interval, charge_interval=charge_interval)
@@ -176,12 +177,32 @@ def get_statistics(db: Session = Depends(get_db)):
     return crud.get_statistics(db)
 
 
-@default_router.get(path='/available_filters',
-                    #response_model=schemas.Filters,
+@default_router.get(path='/current_available_options',
+                    # response_model=schemas.Filters,
                     summary=default_route_summary
                     )
-def get_filters(db: Session = Depends(get_db)):
-    return crud.get_filters(db)
+def get_filtered_options(db: Session = Depends(get_db),
+                         quality: str = None,
+                         family: str = None,
+                         habitat: str = None,
+                         sample: str = None,
+                         microbial_source: str = None,
+                         pep_length_interval: str = None,
+                         mw_interval: str = None,
+                         pI_interval: str = None,
+                         charge_interval: str = None):
+    return crud.get_filtered_options(db, quality=quality, family=family, habitat=habitat,
+                                     microbial_source=microbial_source, sample=sample,
+                                     pep_length_interval=pep_length_interval, mw_interval=mw_interval,
+                                     pI_interval=pI_interval, charge_interval=charge_interval)
+
+
+@default_router.get(path='/all_available_options',
+                    # response_model=schemas.Filters,
+                    summary=default_route_summary
+                    )
+def get_filtered_options(db: Session = Depends(get_db)):
+    return crud.get_all_options(db)
 
 
 @default_router.get(path="/downloads",
