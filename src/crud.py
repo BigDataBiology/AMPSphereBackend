@@ -10,7 +10,7 @@ from src import models
 from src import utils
 from sqlalchemy import distinct, func, true, false
 from sqlalchemy.sql.expression import func as sql_func
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 
 
@@ -57,16 +57,16 @@ def join_necessary_tables(query, query_table, criteria, table_cols_mapper):
 
 def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
     query = db.query(distinct(models.AMP.accession))
-    print(query)
+    # print(query)
     query = filter_by_criteria(query=query, query_table="AMP", **kwargs)
     accessions = query.offset(page * page_size).limit(page_size).all()
-    print(accessions)
+    # print(accessions)
     data = [get_amp(accession, db) for accession, in accessions]
     info = get_query_page_info(q=query, page=page, page_size=page_size)
     paged_amps = types.SimpleNamespace()
     paged_amps.info = info
     paged_amps.data = data
-    print(paged_amps)
+    # print(paged_amps)
     return paged_amps
 
 
@@ -204,25 +204,24 @@ def get_distributions(accession: str, db: Session):
     return utils.compute_distribution_from_query_data(raw_data)
 
 
-def get_fam_downloads(accession, db: Session):
+def get_fam_downloads(accession, db: Session, request: Request):
     # TODO change prefix here for easier maintenance.
-    local_ip = utils.cfg['local_ip']
     q = db.query(models.AMP.family).filter(models.AMP.family == accession).first()
     in_db = bool(q)
     if not in_db:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     else:
-        prefix = pathlib.Path(local_ip + ':443/v1/families/' + accession + '/downloads/')
+        url_prefix = pathlib.Path(str(request.url))
     path_bases = dict(
-        alignment=str(prefix.joinpath('{}.aln')),
-        sequences=str(prefix.joinpath('{}.faa')),
-        hmm_logo=str(prefix.joinpath('{}.png')),
-        hmm_profile=str(prefix.joinpath('{}.hmm')),
-        sequence_logo=str(prefix.joinpath('{}.pdf')),
-        tree_figure=str(prefix.joinpath('{}.ascii')),
-        tree_nwk=str(prefix.joinpath('{}.nwk'))
+        alignment=str(url_prefix.joinpath('{}.aln')),
+        sequences=str(url_prefix.joinpath('{}.faa')),
+        hmm_logo=str(url_prefix.joinpath('{}.png')),
+        hmm_profile=str(url_prefix.joinpath('{}.hmm')),
+        sequence_logo=str(url_prefix.joinpath('{}.pdf')),
+        tree_figure=str(url_prefix.joinpath('{}.ascii')),
+        tree_nwk=str(url_prefix.joinpath('{}.nwk'))
     )
-    return {key: 'http://' + item.format(accession) for key, item in path_bases.items()}
+    return {key: item.format(accession) for key, item in path_bases.items()}
 
 
 def search_by_text(db: Session, text: str, page: int, page_size: int):

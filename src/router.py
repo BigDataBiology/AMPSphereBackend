@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from src import schemas
 from src import utils
 from src import crud
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 
 def get_db():
@@ -54,7 +54,7 @@ def amps(db: Session = Depends(get_db),
     - :param pI_interval: Isoelectric point interval (format: `min_pI,max_pI`, e.g., `4,12`).
     - :param charge_interval: Charge at pH 7 interval (format: `min_charge,max_charge`, e.g., `-57,44`).
     """
-    return crud.get_amps(db, page=page, page_size=page_size,quality=quality,
+    return crud.get_amps(db, page=page, page_size=page_size, quality=quality,
                          family=family, habitat=habitat, microbial_source=microbial_source, sample=sample,
                          pep_length_interval=pep_length_interval, mw_interval=mw_interval,
                          pI_interval=pI_interval, charge_interval=charge_interval)
@@ -152,9 +152,10 @@ def fam_distributions(accession: str = 'SPHERE-III.001_396', db: Session = Depen
 @family_router.get("/{accession}/downloads",
                    response_model=schemas.FamilyDownloads,
                    summary=default_route_summary)
-def fam_downloads(accession: str = 'SPHERE-III.001_396',
+def fam_downloads(accession: str,
+                  request: Request,
                   db: Session = Depends(get_db)):
-    return crud.get_fam_downloads(accession=accession, db=db)
+    return crud.get_fam_downloads(accession=accession, db=db, request=request)
 
 
 @family_router.get("/{accession}/downloads/{file}",
