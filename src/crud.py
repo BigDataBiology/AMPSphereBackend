@@ -266,11 +266,10 @@ def get_query_page_info(q: Query, page_size: int, page: int):
 
 
 def get_filters(db: Session):
-    # FIXME not using the first 100 rows.
     # TODO use query API to get filter suggestion, not all available filters (impossible).
-    family, = zip(*db.query(models.AMP.family).distinct())
+    # family, = zip(*db.query(models.AMP.family).distinct())
     habitat, = zip(*db.query(models.Metadata.general_envo_name).distinct())
-    sample, = zip(*db.query(models.Metadata.sample).distinct())
+    # sample, = zip(*db.query(models.Metadata.sample).distinct())
     microbial_source, = zip(*db.query(models.Metadata.microbial_source).distinct())
     peplen_min, peplen_max, mw_min, mw_max, \
     pI_min, pI_max, charge_min, charge_max = db.query(
@@ -286,9 +285,9 @@ def get_filters(db: Session):
     round_floor = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_FLOOR)
     round_ceiling = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_CEILING)
     return dict(
-        family=family,
+        # family=family,
         habitat=habitat,
-        sample=sample,
+        # sample=sample,
         microbial_source=microbial_source,
         pep_length=dict(min=int(peplen_min), max=int(peplen_max) + 1),
         molecular_weight=dict(min=round_floor(mw_min), max=round_ceiling(mw_max)),
