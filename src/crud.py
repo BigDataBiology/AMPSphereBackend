@@ -130,7 +130,7 @@ def get_amp_features(accession: str, db: Session):
     return utils.get_amp_features(seq)
 
 
-def get_families(db: Session, page: int, page_size: int, **kwargs):
+def get_families(db: Session, page: int, page_size: int, request: Request, **kwargs):
     query = db.query(distinct(models.AMP.family)).outerjoin(models.Metadata)
 
     # Mapping from filter keys to table columns
@@ -144,7 +144,7 @@ def get_families(db: Session, page: int, page_size: int, **kwargs):
     accessions = query.offset(page * page_size).limit(page_size).all()
     # if len(accessions) == 0:
     #     raise HTTPException(status_code=400, detail='invalid filter applied.')
-    data = [get_family(accession, db) for accession, in accessions]
+    data = [get_family(accession, db=db, request=request) for accession, in accessions]
     info = get_query_page_info(q=query, page=page, page_size=page_size)
     paged_families = types.SimpleNamespace()
     paged_families.info = info
@@ -152,7 +152,7 @@ def get_families(db: Session, page: int, page_size: int, **kwargs):
     return paged_families
 
 
-def get_family(accession: str, db: Session):
+def get_family(accession: str, db: Session, request: Request):
     family = dict(
         accession=accession,
         consensus_sequence=utils.cal_consensus_seq(accession),
@@ -160,7 +160,7 @@ def get_family(accession: str, db: Session):
         feature_statistics=get_fam_features(accession, db),
         distributions=get_distributions(accession, db),
         associated_amps=get_associated_amps(accession, db),
-        downloads=get_fam_downloads(accession, db)
+        downloads=get_fam_downloads(accession, db=db, request=request)
     )
     return family
 
@@ -410,8 +410,6 @@ def mmseqs_search(seq: str, db):
 
 def get_family_by_amp(amp_accession, db):
     family, = db.query(models.AMP.family).filter(models.AMP.accession == amp_accession).first()
-    # print(type(family))
-    # print(family)
     return family
 
 

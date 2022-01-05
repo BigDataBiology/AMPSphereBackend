@@ -113,24 +113,24 @@ family_router = APIRouter(
 @family_router.get(path="",
                    response_model=schemas.PagedFamilies,
                    summary=default_route_summary)
-def families(db: Session = Depends(get_db),
+def families(request: Request,
+             db: Session = Depends(get_db),
              habitat: str = None,
              sample: str = None,
              microbail_source: str = None,
              page_size: int = 5,
              page: int = 0):
     families = crud.get_families(
-        db, page=page, page_size=page_size,
-        habitat=habitat, microbail_source=microbail_source, sample=sample
-    )
+        db=db, request=request, page=page, page_size=page_size,
+        habitat=habitat, microbail_source=microbail_source, sample=sample)
     return families
 
 
 @family_router.get(path="/{accession}",
                    response_model=schemas.Family,
                    summary=default_route_summary)
-def family(accession: str = 'SPHERE-III.001_396', db: Session = Depends(get_db)):
-    families = crud.get_family(accession, db)
+def family(accession: str, request: Request, db: Session = Depends(get_db)):
+    families = crud.get_family(accession, db=db, request=request)
     return families
 
 
