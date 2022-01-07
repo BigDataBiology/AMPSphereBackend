@@ -202,8 +202,13 @@ def get_filtered_options(db: Session = Depends(get_db),
                     # response_model=schemas.Filters,
                     summary=default_route_summary
                     )
-def get_filtered_options(db: Session = Depends(get_db)):
+def get_all_options(db: Session = Depends(get_db)):
     return crud.get_all_options(db)
+
+
+@default_router.get(path='/in_db/{entity_type}/{accession}', summary=default_route_summary)
+def in_db(db: Session = Depends(get_db), entity_type: str = 'family', accession: str = 'SPHERE-III.000_428'):
+    return crud.entity_in_db(db=db, entity_type=entity_type, accession=accession)
 
 
 @default_router.get(path="/downloads",

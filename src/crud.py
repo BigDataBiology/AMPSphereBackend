@@ -350,6 +350,16 @@ def get_all_options(db: Session):
     )
 
 
+def entity_in_db(db, entity_type, accession):
+    if entity_type == 'family':
+        exists = db.query(db.query(models.AMP).filter(models.AMP.family == accession).exists()).scalar()
+    elif entity_type in {'sample', 'genome'}:
+        exists = db.query(db.query(models.Metadata).filter(models.Metadata.sample == accession).exists()).scalar()
+    else:
+        exists = False
+    return exists
+
+
 def mmseqs_search(seq: str, db):
     query_id = str(utils.uuid.uuid4())
     query_time_now = utils.datetime.now()
