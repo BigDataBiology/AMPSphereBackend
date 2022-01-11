@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from src import schemas
 from src import utils
 from src import crud
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 
 def get_db():
@@ -32,6 +32,7 @@ amp_router = APIRouter(
                 response_model=schemas.PagedAMPs,
                 summary=default_route_summary)
 def amps(db: Session = Depends(get_db),
+         quality: str = None,
          family: str = None,
          habitat: str = None,
          sample: str = None,
@@ -53,7 +54,7 @@ def amps(db: Session = Depends(get_db),
     - :param pI_interval: Isoelectric point interval (format: `min_pI,max_pI`, e.g., `4,12`).
     - :param charge_interval: Charge at pH 7 interval (format: `min_charge,max_charge`, e.g., `-57,44`).
     """
-    return crud.get_amps(db, page=page, page_size=page_size,
+    return crud.get_amps(db, page=page, page_size=page_size, quality=quality,
                          family=family, habitat=habitat, microbial_source=microbial_source, sample=sample,
                          pep_length_interval=pep_length_interval, mw_interval=mw_interval,
                          pI_interval=pI_interval, charge_interval=charge_interval)
@@ -112,24 +113,24 @@ family_router = APIRouter(
 @family_router.get(path="",
                    response_model=schemas.PagedFamilies,
                    summary=default_route_summary)
-def families(db: Session = Depends(get_db),
+def families(request: Request,
+             db: Session = Depends(get_db),
              habitat: str = None,
              sample: str = None,
              microbail_source: str = None,
              page_size: int = 5,
              page: int = 0):
     families = crud.get_families(
-        db, page=page, page_size=page_size,
-        habitat=habitat, microbail_source=microbail_source, sample=sample
-    )
+        db=db, request=request, page=page, page_size=page_size,
+        habitat=habitat, microbail_source=microbail_source, sample=sample)
     return families
 
 
 @family_router.get(path="/{accession}",
                    response_model=schemas.Family,
                    summary=default_route_summary)
-def family(accession: str = 'SPHERE-III.001_396', db: Session = Depends(get_db)):
-    families = crud.get_family(accession, db)
+def family(accession: str, request: Request, db: Session = Depends(get_db)):
+    families = crud.get_family(accession, db=db, request=request)
     return families
 
 
@@ -151,9 +152,10 @@ def fam_distributions(accession: str = 'SPHERE-III.001_396', db: Session = Depen
 @family_router.get("/{accession}/downloads",
                    response_model=schemas.FamilyDownloads,
                    summary=default_route_summary)
-def fam_downloads(accession: str = 'SPHERE-III.001_396',
+def fam_downloads(accession: str,
+                  request: Request,
                   db: Session = Depends(get_db)):
-    return crud.get_fam_downloads(accession=accession, db=db)
+    return crud.get_fam_downloads(accession=accession, db=db, request=request)
 
 
 @family_router.get("/{accession}/downloads/{file}",
@@ -176,12 +178,37 @@ def get_statistics(db: Session = Depends(get_db)):
     return crud.get_statistics(db)
 
 
-@default_router.get(path='/available_filters',
-                    #response_model=schemas.Filters,
+@default_router.get(path='/current_available_options',
+                    # response_model=schemas.Filters,
                     summary=default_route_summary
                     )
-def get_filters(db: Session = Depends(get_db)):
-    return crud.get_filters(db)
+def get_filtered_options(db: Session = Depends(get_db),
+                         quality: str = None,
+                         family: str = None,
+                         habitat: str = None,
+                         sample: str = None,
+                         microbial_source: str = None,
+                         pep_length_interval: str = None,
+                         mw_interval: str = None,
+                         pI_interval: str = None,
+                         charge_interval: str = None):
+    return crud.get_filtered_options(db, quality=quality, family=family, habitat=habitat,
+                                     microbial_source=microbial_source, sample=sample,
+                                     pep_length_interval=pep_length_interval, mw_interval=mw_interval,
+                                     pI_interval=pI_interval, charge_interval=charge_interval)
+
+
+@default_router.get(path='/all_available_options',
+                    # response_model=schemas.Filters,
+                    summary=default_route_summary
+                    )
+def get_all_options(db: Session = Depends(get_db)):
+    return crud.get_all_options(db)
+
+
+@default_router.get(path='/in_db/{entity_type}/{accession}', summary=default_route_summary)
+def in_db(db: Session = Depends(get_db), entity_type: str = 'family', accession: str = 'SPHERE-III.000_428'):
+    return crud.entity_in_db(db=db, entity_type=entity_type, accession=accession)
 
 
 @default_router.get(path="/downloads",

@@ -11,3 +11,4 @@ biopython~=1.79
 uvicorn~=0.15
 living-tree~=0.0.6
 requests~=2.26.0
+aiofiles~=0.8.0

@@ -25,7 +25,7 @@ class Quality(Base):
 
     """
     __tablename__ = "Quality"
-    AMP = Column(String, primary_key=True, index=True)
+    AMP = Column(String, ForeignKey("AMP.accession"), primary_key=True, index=True)
     Antifam = Column(String)
     RNAcode = Column(String)
     metaproteomes = Column(String)
@@ -41,7 +41,7 @@ class GMSC(Base):
     __tablename__ = "GMSC"
     accession = Column(String, primary_key=True, index=True)
     gene_sequence = Column(String)
-    AMP = Column(String, ForeignKey(AMP.accession), index=True)
+    AMP = Column(String, ForeignKey("AMP.accession"), index=True)
 
 
 class Metadata(Base):
@@ -50,7 +50,7 @@ class Metadata(Base):
     """
     __tablename__ = "Metadata"
     GMSC = Column(String, primary_key=True, index=True)
-    AMPSphere_code = Column(String, ForeignKey(AMP.accession), index=True)
+    AMPSphere_code = Column(String, ForeignKey("AMP.accession"), index=True)
     sample = Column(String, index=True)
     microbial_source = Column(String, index=True)
     specI = Column(String, index=True)
