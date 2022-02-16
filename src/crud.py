@@ -211,7 +211,10 @@ def get_fam_downloads(accession, db: Session, request: Request):
     if not in_db:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     else:
-        url_prefix = pathlib.Path(str(request.url))
+        # FIX bug reported in issue 34, due to nginx proxy.
+        request_url = str(request.url)
+        url_prefix = pathlib.Path(request_url if 'http:/127.0.0.1:1010' not in request_url
+                                  else request_url.replace('http:/127.0.0.1:1010', 'https://ampsphere-api.big-data-biology.org'))
     path_bases = dict(
         alignment=str(url_prefix.joinpath('{}.aln')),
         sequences=str(url_prefix.joinpath('{}.faa')),
