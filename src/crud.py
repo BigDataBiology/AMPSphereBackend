@@ -212,23 +212,20 @@ def get_fam_downloads(accession, db: Session, request: Request):
         raise HTTPException(status_code=400, detail='invalid accession received.')
     else:
         # FIXME Reimplement this.
-        # {Base_URL}/v1/families/{accession}/downloads/{accession}.{extension}"
-
+        url_prefix = '{}/v1/families/{}/downloads/{}'.format(
+            'https://ampsphere-api.big-data-biology.org',
+            accession,
+            accession)
         # FIX bug reported in issue 34, due to nginx proxy.
-        # If we call this api using family retrieval URL, reqest URL is not ended with 'downloads'.
-        request_url = str(request.url)
-        print(request_url)
-        url_prefix = pathlib.Path(request_url if 'http://127.0.0.1:1010' not in request_url
-                                  else request_url.replace('http://127.0.0.1:1010',
-                                                           'https://ampsphere-api.big-data-biology.org'))
+        print(url_prefix)
     path_bases = dict(
-        alignment=str(url_prefix.joinpath('{}.aln')),
-        sequences=str(url_prefix.joinpath('{}.faa')),
-        hmm_logo=str(url_prefix.joinpath('{}.png')),
-        hmm_profile=str(url_prefix.joinpath('{}.hmm')),
-        sequence_logo=str(url_prefix.joinpath('{}.pdf')),
-        tree_figure=str(url_prefix.joinpath('{}.ascii')),
-        tree_nwk=str(url_prefix.joinpath('{}.nwk'))
+        alignment=str(url_prefix + '.aln'),
+        sequences=str(url_prefix + '.faa'),
+        hmm_logo=str(url_prefix + '.png'),
+        hmm_profile=str(url_prefix + '.hmm'),
+        sequence_logo=str(url_prefix + '.pdf'),
+        tree_figure=str(url_prefix + '.ascii'),
+        tree_nwk=str(url_prefix + '.nwk')
     )
     return {key: item.format(accession) for key, item in path_bases.items()}
 
