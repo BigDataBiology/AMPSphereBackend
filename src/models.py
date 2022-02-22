@@ -18,40 +18,23 @@ class AMP(Base):
     aromaticity = Column(Float)
     instability_index = Column(Float)
     gravy = Column(Float)
-
-
-class Quality(Base):
-    """
-
-    """
-    __tablename__ = "Quality"
-    AMP = Column(String, ForeignKey("AMP.accession"), primary_key=True, index=True)
     Antifam = Column(String)
     RNAcode = Column(String)
     metaproteomes = Column(String)
+    metatranscriptomes = Column(String)
     coordinates = Column(String)
-    score = Column(Float)
-    badge = Column(String, index=True)
 
 
-class GMSC(Base):
-    """
-
-    """
-    __tablename__ = "GMSC"
-    accession = Column(String, primary_key=True, index=True)
-    gene_sequence = Column(String)
-    AMP = Column(String, ForeignKey("AMP.accession"), index=True)
-
-
-class Metadata(Base):
+class GMSCMetadata(Base):
     """
     gmsc	amp	sample	source	specI	is_metagenomic	geographic_location	latitude	longitude	general envo name	environment_material
     """
     __tablename__ = "Metadata"
-    GMSC = Column(String, primary_key=True, index=True)
-    AMPSphere_code = Column(String, ForeignKey("AMP.accession"), index=True)
+    GMSC_accession = Column(String, primary_key=True, index=True)
+    gene_sequence = Column(String)
+    AMP = Column(String, ForeignKey("AMP.accession"), index=True)
     sample = Column(String, index=True)
+    # TODO can we unify all microbial sources in this table into a single rank? maybe species level?
     microbial_source = Column(String, index=True)
     specI = Column(String, index=True)
     is_metagenomic = Column(Boolean, index=True)
@@ -62,9 +45,34 @@ class Metadata(Base):
     environment_material = Column(String)
 
 
-class Statistics(Base):
+class GTDBTaxonRank(Base):
     """
 
+    """
+    __tablename__ = "GTDB_taxon_rank"
+    scientific_name = Column(String, primary_key=True, index=True)
+    rank = Column(String, index=True)
+
+
+class GTDBTaxonomy(Base):
+    """
+    TODO can we simplify this table? It's really a lot and maybe cannot finish a query soon.
+    """
+    __tablename__ = "GTDB_taxonomy_tree"
+    Domain = Column(String, index=True)
+    Kingdom = Column(String, index=True)
+    Phylum = Column(String, index=True)
+    Class = Column(String, index=True)
+    Order = Column(String, index=True)
+    Family = Column(String, index=True)
+    Genus = Column(String, index=True)
+    Species = Column(String, index=True)
+    Subspecies = Column(String, index=True)
+
+
+class Statistics(Base):
+    """
+    To be updated.
     """
     __tablename__ = "Statistics"
     gmsc = Column(Integer, primary_key=True)
