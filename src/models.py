@@ -34,8 +34,14 @@ class GMSCMetadata(Base):
     gene_sequence = Column(String)
     AMP = Column(String, ForeignKey("AMP.accession"), index=True)
     sample = Column(String, index=True)
-    # TODO can we unify all microbial sources in this table into a single rank? maybe species level?
-    microbial_source = Column(String, index=True)
+    microbial_source_k = Column(String, index=True)  # kingdom
+    microbial_source_p = Column(String, index=True)  # phylum
+    microbial_source_c = Column(String, index=True)  # class
+    microbial_source_o = Column(String, index=True)  # order
+    microbial_source_f = Column(String, index=True)  # family
+    microbial_source_g = Column(String, index=True)  # genus
+    microbial_source_sp = Column(String, index=True)  # species
+    microbial_source_st = Column(String, index=True)  # strain
     specI = Column(String, index=True)
     is_metagenomic = Column(Boolean, index=True)
     geographic_location = Column(String, index=True)
@@ -52,22 +58,6 @@ class GTDBTaxonRank(Base):
     __tablename__ = "GTDB_taxon_rank"
     scientific_name = Column(String, primary_key=True, index=True)
     rank = Column(String, index=True)
-
-
-class GTDBTaxonomy(Base):
-    """
-    TODO can we simplify this table? It's really a lot and maybe cannot finish a query soon.
-    """
-    __tablename__ = "GTDB_taxonomy_tree"
-    Domain = Column(String, index=True)
-    Kingdom = Column(String, index=True)
-    Phylum = Column(String, index=True)
-    Class = Column(String, index=True)
-    Order = Column(String, index=True)
-    Family = Column(String, index=True)
-    Genus = Column(String, index=True)
-    Species = Column(String, index=True)
-    Subspecies = Column(String, index=True)
 
 
 class Statistics(Base):
