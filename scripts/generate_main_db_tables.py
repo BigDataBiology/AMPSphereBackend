@@ -1,5 +1,5 @@
 import shutil
-
+import gzip
 import pandas as pd
 import argparse
 from Bio import SeqIO
@@ -12,6 +12,8 @@ parser.add_argument('--metadata', type=str)
 parser.add_argument('--faa', type=str)
 parser.add_argument('--fna', type=str)
 parser.add_argument('--features', type=str)
+parser.add_argument('--quality', type=str)
+parser.add_argument('--gtdb-files', type=str, nargs='+')
 parser.add_argument('outdir', type=str, default='tables')
 args = parser.parse_args()
 
@@ -20,8 +22,18 @@ print('Loading input data...', end=' ')
 metadata_file = pathlib.Path(args.metadata)
 metadata = dt.fread(args.metadata, sep='\t').to_pandas()
 features = dt.fread(args.features, sep='\t').to_pandas()
-faa = SeqIO.parse(args.faa, 'fasta')
-fna = SeqIO.parse(args.fna, 'fasta')
+with gzip.open(args.faa, 'rt') as f:
+    faa = SeqIO.parse(f, 'fasta')
+    AMP_table = pd.DataFrame([[r.id, str(r.seq), r.description.split(' | ')[1]] for r in faa.records],
+                             columns=['accession', 'sequence', 'family'])
+with gzip.open(args.fna, 'rt') as f:
+    fna = SeqIO.parse(f, 'fasta')
+    gmsc_table = pd.DataFrame([[r.id, str(r.seq), r.description.split(' ')[1]] for r in fna.records],
+                              columns=['accession', 'gene_sequence', 'AMP'])
+quality = pd.read_csv('tmp/quality_assessment.tsv.xz', sep='\t')
+taxonomy = pd.concat((pd.read_csv(file, sep='\t') for file in args.gtdb_files), axis=0)
+# TODO generate hierarchical taxonomy tables based on selected field, but which field?
+
 print('done')
 
 
@@ -44,22 +56,16 @@ print('Generating tables...', end=' ')
     gravy = Column(Float)
 """
 AMP_cols = ['accession', 'sequence', 'family', 'length', 'molecular_weight', 'isoelectric_point', 'charge', 'aromaticity', 'instability_index', 'gravy']
-GMSC_cols = ['accession', 'gene_sequence', 'AMP']
-AMP_table = pd.DataFrame([[r.id, str(r.seq), r.description.split(' | ')[1]] for r in faa.records], columns=AMP_cols[0:3])
-tables = {
-    'AMP': pd.merge(AMP_table.drop(columns='family'), features, left_on=['accession'], right_on=['id'])[AMP_cols],
-    'GMSC': pd.DataFrame([[r.id, str(r.seq), r.description.split(' ')[1]] for r in fna.records], columns=GMSC_cols),
-    'Statistics': pd.DataFrame({**metadata.nunique(dropna=True).to_frame().T.to_dict(),
-                                **AMP_table.drop(columns=['sequence', 'accession']).nunique(dropna=True).to_frame().T.to_dict()})
-}
+
+tables = dict(
+    AMP=pd.merge(AMP_table.drop(columns='family'), features, left_on=['accession'], right_on=['id'])[AMP_cols].
+                     merge(quality, left_on='accession', right_on='AMP'),
+    GMSC=gmsc_table,
+    Statistics=pd.DataFrame({**metadata.nunique(dropna=True).to_frame().T.to_dict(),
+                                **AMP_table.drop(columns=['sequence', 'accession']).nunique(dropna=True).to_frame().T.to_dict()}))
 
 # SPHEREs with num_amps < 8 should not be treated as families.
 tables['Statistics']['family'] = sum(tables['AMP'].family.value_counts() >= 8)
-# cols = "GMSC sample microontology environmental_features host_scientific_name origin_scientific_name accession family "
-# tables['Statistics'] = tables['Statistics'][cols.split()]
-# for col in cols.split():
-#     if col in tables['Metadata'].columns and tables['Metadata'][col].hasnans:
-#         tables['Statistics'][col] -= 1
 print('done')
 
 shutil.copy(metadata_file, pathlib.Path(output_dir.joinpath('Metadata.tsv')))

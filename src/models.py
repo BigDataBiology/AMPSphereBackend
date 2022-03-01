@@ -34,14 +34,14 @@ class GMSCMetadata(Base):
     gene_sequence = Column(String)
     AMP = Column(String, ForeignKey("AMP.accession"), index=True)
     sample = Column(String, index=True)
-    microbial_source_k = Column(String, index=True)  # kingdom
+    microbial_source_d = Column(String, index=True)  # kingdom
     microbial_source_p = Column(String, index=True)  # phylum
     microbial_source_c = Column(String, index=True)  # class
     microbial_source_o = Column(String, index=True)  # order
     microbial_source_f = Column(String, index=True)  # family
     microbial_source_g = Column(String, index=True)  # genus
-    microbial_source_sp = Column(String, index=True)  # species
-    microbial_source_st = Column(String, index=True)  # strain
+    microbial_source_s = Column(String, index=True)  # species
+    microbial_source_x = Column(String, index=True)  # strain
     specI = Column(String, index=True)
     is_metagenomic = Column(Boolean, index=True)
     geographic_location = Column(String, index=True)
