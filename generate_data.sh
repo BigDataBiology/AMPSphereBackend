@@ -21,11 +21,18 @@ mkdir $TMP_DIR
 ./scripts/generate_features.py
 
 # Generate necessary tables in order to create a sqlite database.
-DB_DIR='data/ampsphere_main_db'
-./scripts/generate_main_db_tables.py
+python ./scripts/generate_main_db_tables.py tmp \
+--metadata tmp/gmsc_amp_genes_envohr_source.tsv \
+--faa tmp/AMPSphere_v.2021-03.faa.gz \
+--fna tmp/AMPSphere_v.2021-03.fna.xz \
+--features tmp/features_plot_ampsphere.tsv \
+--quality tmp/quality_assessment.tsv.xz \
+--gtdb-files tmp/bac120_metadata_r95.tar.gz/bac120_metadata_r95.tsv tmp/ar122_metadata_r95.tar.gz/ar122_metadata_r95.tsv
 
 # Generate sqlite3 database
-sqlite3 ${DB_DIR}/AMPSphere_latest.sqlite < ./scripts/import.sql
+DB_DIR='data/ampsphere_main_db'
+python -c "from src.database import engine; from src import models; models.Base.metadata.create_all(bind=engine)"
+sqlite3 ${DB_DIR}/AMPSphere_v.${VERSION_CODE}.sqlite < ./scripts/import.sql
 
 # Precompute family data
 # Help needed: Please give me the script.
