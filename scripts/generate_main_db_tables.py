@@ -138,7 +138,7 @@ del gmsc_table
 print('\t GTDBTaxonRank table...', end=' ', flush=True)
 taxonomy = taxonomy.set_index('index')
 rank = pd.DataFrame([{'gtdb_taxon': taxon, 'microbial_source_rank': col} for col in taxonomy.columns for taxon in taxonomy[col] if taxon])
-rank.drop_duplicates().reset_index(drop=True).to_csv(output_dir.joinpath('GTDBTaxonRank.tsv'), sep='\t')
+rank.drop_duplicates().dropna().reset_index().to_csv(output_dir.joinpath('GTDBTaxonRank.tsv'), sep='\t', index=False)
 del rank
 
 print('\t Statitics table...', end=' ', flush=True)
