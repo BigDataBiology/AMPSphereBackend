@@ -252,14 +252,14 @@ def compute_distribution_from_query_data(query_data):
         # print(metadata[['habitat_type', 'microontology']])
         # metadata['color'] = metadata['habitat_type'].map(color_map)
         data = dict(
-            geo=metadata[['AMPSphere_code', 'latitude', 'longitude', 'habitat_type']].
+            geo=metadata[['AMP', 'latitude', 'longitude', 'habitat_type']].
                 groupby(['latitude', 'longitude', 'habitat_type'], as_index=False, observed=True).size(),
-            habitat=metadata[['AMPSphere_code', 'general_envo_name', 'habitat_type']].
+            habitat=metadata[['AMP', 'general_envo_name', 'habitat_type']].
                 groupby(['general_envo_name', 'habitat_type'], as_index=False, observed=True).size(),
-            microbial_source=metadata[['AMPSphere_code', 'microbial_source']].
-                groupby('microbial_source', as_index=False).size()
+            microbial_source=metadata[['AMP', 'microbial_source_s']].
+                groupby('microbial_source_s', as_index=False).size()
         )
-        names = {'latitude': 'lat', 'longitude': 'lon', 'AMPSphere_code': 'size'}
+        names = {'latitude': 'lat', 'longitude': 'lon', 'AMP': 'size'}
         data['geo'].rename(columns=names, inplace=True)
         data['geo'] = data['geo'].to_dict(orient='list')
         # FIXME hierarchical structure generation.
@@ -273,7 +273,7 @@ def compute_distribution_from_query_data(query_data):
             data = data.sort_values(by='size', ascending=False)
             top_9 = data[0:9]
             return pd.DataFrame(top_9.values.tolist(), columns=data.columns).append(
-                {'microbial_source': 'others', 'size': data.loc[9:, 'size'].sum()},
+                {'microbial_source_s': 'others', 'size': data.loc[9:, 'size'].sum()},
                 ignore_index=True
             )
 
@@ -281,7 +281,7 @@ def compute_distribution_from_query_data(query_data):
             data['microbial_source'] = simplify(data['microbial_source'])
         # print()
         data['microbial_source'] = dict(
-            labels=data['microbial_source']['microbial_source'].tolist(),
+            labels=data['microbial_source']['microbial_source_s'].tolist(),
             values=data['microbial_source']['size'].tolist()
         )
         print(data['microbial_source'])

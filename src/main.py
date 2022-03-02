@@ -33,13 +33,13 @@ app = FastAPI(
 )
 
 # Repeated with Nginx one, so remove it.
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-#     allow_credentials=True,
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)
 
 
 for router in [amp_router, family_router, default_router]:
