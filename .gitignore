@@ -1,0 +1,8 @@
+.idea/*
+tmp/*
+data/quality_assessment.tsv.xz
+data/ampsphere_main_db/AMPSphere_v.2021-03.sqlite
+data/mmseqs_db/*
+src/__pycache__/*
+tests/__pycache__/*
+__pycache__/*
