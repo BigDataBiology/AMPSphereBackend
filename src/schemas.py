@@ -1,4 +1,5 @@
 from typing import List, Optional, Dict
+from xmlrpc.client import Boolean
 from pydantic import BaseModel, validator
 
 
@@ -51,7 +52,6 @@ class Distributions(BaseModel):
         orm_mode = True
 
 
-# Object for AMP_card page ------------------------------------------------
 class AMPFeatures(BaseModel):
     MW: float
     Length: float
@@ -68,17 +68,27 @@ class AMPFeatures(BaseModel):
         orm_mode = True
 
 
+# Object for AMP_card page ------------------------------------------------
 class Metadata(BaseModel):
-    AMPSphere_code: str
-    GMSC: str
+    AMP: str
+    GMSC_accession: str
     gene_sequence: str
     sample: str
-    general_envo_name: str
-    environment_material: str
+    specI: Optional[str]
+    is_metagenomic: Boolean
+    geographic_location: str
     latitude: Optional[float]
     longitude: Optional[float]
-    specI: Optional[str]
-    microbial_source: Optional[str]
+    general_envo_name: str
+    environment_material: str
+    microbial_source_d: Optional[str]
+    microbial_source_p: Optional[str]
+    microbial_source_c: Optional[str]
+    microbial_source_o: Optional[str]
+    microbial_source_f: Optional[str]
+    microbial_source_g: Optional[str]
+    microbial_source_s: Optional[str]
+
 
     class Config:
         orm_mode = True
@@ -87,16 +97,40 @@ class Metadata(BaseModel):
     def origin_tax_id_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('microbial_source', pre=True)
-    def origin_name_blank_string(value, field):
-        return None if value == "" else value
-
     @validator('latitude', pre=True)
     def latitude_blank_string(value, field):
         return None if value == "" else value
 
     @validator('longitude', pre=True)
     def longitude_blank_string(value, field):
+        return None if value == "" else value
+
+    @validator('microbial_source_d', pre=True)
+    def origin_name_d_blank_string(value, field):
+        return None if value == "" else value
+
+    @validator('microbial_source_p', pre=True)
+    def origin_name_p_blank_string(value, field):
+        return None if value == "" else value
+
+    @validator('microbial_source_c', pre=True)
+    def origin_name_c_blank_string(value, field):
+        return None if value == "" else value
+
+    @validator('microbial_source_o', pre=True)
+    def origin_name_o_blank_string(value, field):
+        return None if value == "" else value
+
+    @validator('microbial_source_f', pre=True)
+    def origin_name_f_blank_string(value, field):
+        return None if value == "" else value
+
+    @validator('microbial_source_g', pre=True)
+    def origin_name_g_blank_string(value, field):
+        return None if value == "" else value
+
+    @validator('microbial_source_s', pre=True)
+    def origin_name_s_blank_string(value, field):
         return None if value == "" else value
 
 
@@ -141,10 +175,14 @@ class AMP(BaseModel):
     aromaticity: float
     instability_index: float
     gravy: float
+    Antifam: str
+    RNAcode: str
+    metaproteomes: str
+    metatranscriptomes: str
+    coordinates: str
     secondary_structure: Dict[str, float]
     feature_graph_points: Optional[FeatureGraphPoints]
     metadata: PagedMetadata
-    quality: AMPQuality
     
     class Config:
         orm_mode = True

@@ -35,7 +35,7 @@ def amps(db: Session = Depends(get_db),
          quality: str = None,
          family: str = None,
          habitat: str = None,
-         sample: str = None,
+         sample_genome: str = None,
          microbial_source: str = None,
          pep_length_interval: str = None,
          mw_interval: str = None,
@@ -54,8 +54,8 @@ def amps(db: Session = Depends(get_db),
     - :param pI_interval: Isoelectric point interval (format: `min_pI,max_pI`, e.g., `4,12`).
     - :param charge_interval: Charge at pH 7 interval (format: `min_charge,max_charge`, e.g., `-57,44`).
     """
-    return crud.get_amps(db, page=page, page_size=page_size, quality=quality,
-                         family=family, habitat=habitat, microbial_source=microbial_source, sample=sample,
+    return crud.get_amps(db, page=page, page_size=page_size, quality=quality, sample_genome=sample_genome,
+                         family=family, habitat=habitat, microbial_source=microbial_source, 
                          pep_length_interval=pep_length_interval, mw_interval=mw_interval,
                          pI_interval=pI_interval, charge_interval=charge_interval)
 

@@ -14,50 +14,60 @@ from fastapi import HTTPException, Request
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 
 
-def filter_by_criteria(query, query_table, **criteria):
-    table_cols_mapper = dict(
-        GMSCMetadata=dict(habitat='general_envo_name', microbial_source='microbial_source', sample_genome='sample'),
-        AMP=dict(pep_length_interval='length', mw_interval='molecular_weight', pI_interval='isoelectric_point',
-                 charge_interval='charge', family='family')
-    )
+def filter_by_criteria(query, db, **criteria):
+    """
+    Possible criteria:
+        quality: str = None,
+        family: str = None,
+        habitat: str = None,
+        sample: str = None,
+        microbial_source: str = None,
+        pep_length_interval: str = None,
+        mw_interval: str = None,
+        pI_interval: str = None,
+        charge_interval: str = None,
+    """
+    cols_mapper = dict(   # Mapping from query filter names to table column names
+        GMSCMetadata=dict(
+            habitat='general_envo_name', 
+            microbial_source='microbial_source', 
+            sample_genome='sample'),
+        AMP=dict(
+            quality='RNAcode',
+            pep_length_interval='length', 
+            mw_interval='molecular_weight',
+            pI_interval='isoelectric_point',
+            charge_interval='charge', 
+            family='family'))
 
     criteria = {key: value for key, value in criteria.items() if value}
     print("Filters applied:", criteria)
-    # print('Query statement (original):', query)
-    query = join_necessary_tables(query, query_table, criteria, table_cols_mapper)
-    # print('Query statement (after joining):', query)
 
-    for key, value in criteria.items():
-        if key in {'habitat', 'microbial_source', 'sample_genome'}:
-            query = query.filter(getattr(models.GMSCMetadata, table_cols_mapper['GMSCMetadata'][key]) == value)
-        # elif key == 'quality':
-        #     query = query.filter(getattr(models.Quality, table_cols_mapper['Quality'][key]) == value)
-        elif key == 'family':
-            query = query.filter(getattr(models.AMP, table_cols_mapper['AMP'][key]) == value)
-        elif key in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
+    for filter, value in criteria.items():
+        if filter in {'habitat', 'sample_genome'}:
+            query = query.filter(getattr(models.GMSCMetadata, cols_mapper['GMSCMetadata'][filter]) == value)
+        elif filter == 'microbial_source':
+            query = filter_by_gtdb_taxonomy(query, taxonomy=value, db=db)
+        elif filter in {'family', 'quality'}:
+            query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == value)
+        elif filter in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
             min_max: [str] = value.split(',')
-            col_values = getattr(models.AMP, table_cols_mapper['AMP'][key])
+            col_values = getattr(models.AMP, cols_mapper['AMP'][filter])
             query = query.filter(and_(float(min_max[0]) <= col_values, col_values <= float(min_max[1])))
     return query
 
 
-# TODO update this.
-def join_necessary_tables(query, query_table, criteria, table_cols_mapper):
-    table_entities = dict(GMSCMetadata=models.GMSCMetadata, AMP=models.AMP,)
-    for filter_table_name, cols in table_cols_mapper.items():
-        if set(criteria.keys()).intersection(cols.keys()) and query_table != filter_table_name:
-            # print('Filter table: {}, Query table: {}. Joining filter table...'.format(filter_table_name, query_table))
-            if {filter_table_name, query_table} == {'Metadata', 'AMP'}:
-                query = query.join(table_entities[filter_table_name], models.GMSCMetadata.AMP == models.AMP.accession)
-            else:
-                query = query.join(table_entities[filter_table_name])
-    return query
+def filter_by_gtdb_taxonomy(query, taxonomy, db, rank=None):
+    if not rank: 
+        rank = db.query(models.GTDBTaxonRank.microbial_source_rank).\
+            filter(models.GTDBTaxonRank.gtdb_taxon == taxonomy).first()[0]
+    return query.filter(getattr(models.GMSCMetadata, rank) == taxonomy)
 
 
 def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
-    query = db.query(distinct(models.AMP.accession))
+    query = db.query(distinct(models.AMP.accession)).join(models.GMSCMetadata)
     # print(query)
-    query = filter_by_criteria(query=query, query_table="AMP", **kwargs)
+    query = filter_by_criteria(query=query, db=db, **kwargs)
     accessions = query.offset(page * page_size).limit(page_size).all()
     # print(accessions)
     data = [get_amp(accession, db) for accession, in accessions]
@@ -73,12 +83,9 @@ def get_amp(accession: str, db: Session):
     amp_obj = db.query(models.AMP).filter(models.AMP.accession == accession).first()
     if not amp_obj:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    # gene_seqs = db.query(models.GMSC.gene_sequence).filter(models.GMSC.AMP == accession).all()
-    # features = utils.get_amp_features(amp_obj.sequence)
     feature_graph_points = utils.get_graph_points(amp_obj.sequence)
     metadata = get_amp_metadata(accession, db, page=0, page_size=5)
     setattr(amp_obj, "feature_graph_points", feature_graph_points)
-    # setattr(amp_obj, "gene_sequences", gene_seqs)
     setattr(amp_obj, "secondary_structure", utils.get_secondary_structure(amp_obj.sequence))
     setattr(amp_obj, "metadata", metadata)
     return amp_obj
@@ -111,7 +118,6 @@ def get_amp_features(accession: str, db: Session):
 
 def get_families(db: Session, page: int, page_size: int, request: Request, **kwargs):
     query = db.query(distinct(models.AMP.family)).outerjoin(models.GMSCMetadata)
-
     # Mapping from filter keys to table columns
     metadata_cols = {
         'habitat': 'general_envo_name',
