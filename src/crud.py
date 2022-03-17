@@ -17,7 +17,10 @@ from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 def filter_by_criteria(query, db, **criteria):
     """
     Possible criteria:
-        quality: str = None,
+        exp_evidence: str = None,
+        antifam: str = None,
+        RNAcode: str = None,
+        coordinates: str = None,
         family: str = None,
         habitat: str = None,
         sample: str = None,
@@ -33,7 +36,9 @@ def filter_by_criteria(query, db, **criteria):
             microbial_source='microbial_source', 
             sample_genome='sample'),
         AMP=dict(
-            quality='RNAcode',
+            antifam='Antifam',
+            RNAcode='RNAcode',
+            coordinates='coordinates',
             pep_length_interval='length', 
             mw_interval='molecular_weight',
             pI_interval='isoelectric_point',
@@ -41,6 +46,7 @@ def filter_by_criteria(query, db, **criteria):
             family='family'))
 
     criteria = {key: value for key, value in criteria.items() if value}
+    print(criteria)
     print("Filters applied:", criteria)
 
     for filter, value in criteria.items():
@@ -48,8 +54,14 @@ def filter_by_criteria(query, db, **criteria):
             query = query.filter(getattr(models.GMSCMetadata, cols_mapper['GMSCMetadata'][filter]) == value)
         elif filter == 'microbial_source':
             query = filter_by_gtdb_taxonomy(query, taxonomy=value, db=db)
-        elif filter in {'family', 'quality'}:
-            query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == value)
+        elif filter == 'exp_evidence' and value == 'Yes':
+            print('filtering by exp_evidence == {}'.format(value))
+            query = query.filter(or_(models.AMP.metaproteomes == 'Passed', models.AMP.metatranscriptomes == 'Passed'))
+        elif filter == 'exp_evidence' and value == 'No':
+            print('filtering by exp_evidence == {}'.format(value))
+            query = query.filter(and_(models.AMP.metaproteomes == 'Failed', models.AMP.metatranscriptomes == 'Failed'))
+        elif filter in {'family', 'antifam', 'RNAcode', 'coordinates'}:
+            query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == 'Passed' if value == 'Yes' else 'Failed')
         elif filter in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
             min_max: [str] = value.split(',')
             col_values = getattr(models.AMP, cols_mapper['AMP'][filter])
@@ -316,8 +328,8 @@ def get_query_page_info(q: Query, page_size: int, page: int):
 
 def get_all_options(db: Session):
     habitat, = zip(*db.query(models.GMSCMetadata.general_envo_name).distinct())
-    # microbial_source, = zip(*db.query(models.GMSCMetadata.microbial_source).distinct())
-    # quality, = zip(*db.query(models.Quality.badge).distinct())
+    microbial_source, = zip(*db.query(models.GTDBTaxonRank.gtdb_taxon).distinct())
+    quality, = zip(*db.query(models.AMP.RNAcode).distinct())
     peplen_min, peplen_max, mw_min, mw_max, \
     pI_min, pI_max, charge_min, charge_max = db.query(
         func.min(models.AMP.length),
@@ -332,9 +344,9 @@ def get_all_options(db: Session):
     round_floor = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_FLOOR)
     round_ceiling = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_CEILING)
     return dict(
-        # quality=quality,
+        quality=quality,
         habitat=habitat,
-        # microbial_source=microbial_source,
+        microbial_source=microbial_source,
         pep_length=dict(min=int(peplen_min), max=int(peplen_max) + 1),
         molecular_weight=dict(min=round_floor(mw_min), max=round_ceiling(mw_max)),
         isoelectric_point=dict(min=round_floor(pI_min), max=round_ceiling(pI_max)),
