@@ -104,6 +104,7 @@ del metadata
 GMSC_cols += taxonomy_cols
 gmsc_table = gmsc_table.merge(taxonomy, left_on='source', right_on='index', how='left', copy=False)[GMSC_cols]
 gmsc_table = gmsc_table.drop(columns=['gmsc', 'amp', 'source'])
+gmsc_table.loc[gmsc_table.is_metagenomic == 'False', 'general envo name'] = 'Progenomes'
 gmsc_table.to_csv(output_dir.joinpath('GMSCMetadata.tsv'), sep='\t', index=False)
 """
     gmsc=0,
