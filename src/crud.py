@@ -54,14 +54,14 @@ def filter_by_criteria(query, db, **criteria):
             query = query.filter(getattr(models.GMSCMetadata, cols_mapper['GMSCMetadata'][filter]) == value)
         elif filter == 'microbial_source':
             query = filter_by_gtdb_taxonomy(query, taxonomy=value, db=db)
-        elif filter == 'exp_evidence' and value == 'Yes':
+        elif filter == 'exp_evidence' and value == 'Passed':
             print('filtering by exp_evidence == {}'.format(value))
             query = query.filter(or_(models.AMP.metaproteomes == 'Passed', models.AMP.metatranscriptomes == 'Passed'))
-        elif filter == 'exp_evidence' and value == 'No':
+        elif filter == 'exp_evidence' and value == 'Failed':
             print('filtering by exp_evidence == {}'.format(value))
             query = query.filter(and_(models.AMP.metaproteomes == 'Failed', models.AMP.metatranscriptomes == 'Failed'))
         elif filter in {'family', 'antifam', 'RNAcode', 'coordinates'}:
-            query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == 'Passed' if value == 'Yes' else 'Failed')
+            query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == 'Passed' if value == 'Passed' else 'Failed')
         elif filter in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
             min_max: [str] = value.split(',')
             col_values = getattr(models.AMP, cols_mapper['AMP'][filter])
