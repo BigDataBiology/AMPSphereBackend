@@ -88,7 +88,7 @@ print('\t AMP table...', end=' ', flush=True)
 
 AMP_cols += ['length', 'molecular_weight', 'isoelectric_point', 'charge', 'aromaticity', 'instability_index', 'gravy']
 AMP_table = AMP_table.drop(columns='family').merge(features, left_on=['accession'], right_on=['id'])[AMP_cols]
-AMP_cols += ['Antifam', 'RNAcode', 'metaproteomes', 'metatranscriptomes', 'coordinates']
+AMP_cols += ['Antifam', 'RNAcode', 'metaproteomes', 'metatranscriptomes', 'Coordinates']
 AMP_table = AMP_table.merge(quality, left_on='accession', right_on='AMP')[AMP_cols]
 AMP_table.to_csv(output_dir.joinpath('AMP.tsv'), sep='\t', index=False)
 statistics['amp'] = AMP_table.accession.unique().shape[0]
@@ -104,7 +104,7 @@ del metadata
 GMSC_cols += taxonomy_cols
 gmsc_table = gmsc_table.merge(taxonomy, left_on='source', right_on='index', how='left', copy=False)[GMSC_cols]
 gmsc_table = gmsc_table.drop(columns=['gmsc', 'amp', 'source'])
-gmsc_table.loc[gmsc_table.is_metagenomic == 'False', 'general envo name'] = 'Progenomes'
+gmsc_table.loc[gmsc_table.is_metagenomic == 'False', 'general_envo_name'] = 'Progenomes'
 gmsc_table.to_csv(output_dir.joinpath('GMSCMetadata.tsv'), sep='\t', index=False)
 """
     gmsc=0,
@@ -131,7 +131,7 @@ statistics['source_f'] = n_unique(gmsc_table.microbial_source_f)
 statistics['source_g'] = n_unique(gmsc_table.microbial_source_g)
 statistics['source_s'] = n_unique(gmsc_table.microbial_source_s)
 statistics['geographic_location'] = n_unique(gmsc_table.geographic_location)
-statistics['general_envo_name'] = n_unique(gmsc_table['general envo name'])
+statistics['general_envo_name'] = n_unique(gmsc_table['general_envo_name'])
 statistics['environment_material'] = n_unique(gmsc_table.environment_material)
 
 del gmsc_table
