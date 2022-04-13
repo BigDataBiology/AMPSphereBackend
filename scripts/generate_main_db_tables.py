@@ -32,7 +32,7 @@ args = parser.parse_args()
 
 print('Loading input data...', end=' ')
 metadata_file = pathlib.Path(args.metadata)
-metadata = dt.fread(args.metadata, sep='\t').to_pandas()
+metadata = dt.fread(args.metadata, sep='\t', na_strings=['N.A.']).to_pandas()
 features = dt.fread(args.features, sep='\t').to_pandas()
 with gzip.open(args.faa, 'rt') as f:
     faa = SeqIO.parse(f, 'fasta')
@@ -41,7 +41,7 @@ with gzip.open(args.faa, 'rt') as f:
 with xz.open(args.fna, 'rt') as f:
     fna = SeqIO.parse(f, 'fasta')
     GMSC_cols = ['accession', 'gene_sequence', 'AMP']
-    gmsc_table = pd.DataFrame([[r.id, str(r.seq), r.description.split(' ')[1]] for r in fna.records], columns=GMSC_cols)
+    gmsc_table = pd.DataFrame([[r.id, str(r.seq), r.description.split(' | ')[1]] for r in fna.records], columns=GMSC_cols)
 quality = dt.fread(args.quality, sep='\t').to_pandas()
 taxa_files = [dt.fread(file, sep='\t').to_pandas() for file in args.gtdb_files]
 taxonomy = pd.concat(taxa_files).reset_index()
