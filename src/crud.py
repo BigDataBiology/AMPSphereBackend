@@ -61,7 +61,7 @@ def filter_by_criteria(query, db, **criteria):
             print('filtering by exp_evidence == {}'.format(value))
             query = query.filter(and_(models.AMP.metaproteomes == 'Failed', models.AMP.metatranscriptomes == 'Failed'))
         elif filter in {'family', 'antifam', 'RNAcode', 'coordinates'}:
-            query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == 'Passed' if value == 'Passed' else 'Failed')
+            query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == value)
         elif filter in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
             min_max: [str] = value.split(',')
             col_values = getattr(models.AMP, cols_mapper['AMP'][filter])
@@ -71,8 +71,12 @@ def filter_by_criteria(query, db, **criteria):
 
 def filter_by_gtdb_taxonomy(query, taxonomy, db, rank=None):
     if not rank: 
-        rank = db.query(models.GTDBTaxonRank.microbial_source_rank).\
-            filter(models.GTDBTaxonRank.gtdb_taxon == taxonomy).first()[0]
+        rank_ = db.query(models.GTDBTaxonRank.microbial_source_rank).\
+            filter(models.GTDBTaxonRank.gtdb_taxon == taxonomy).first()
+        if rank_:
+            rank = rank_[0]
+        else:
+            raise HTTPException(status_code=400, detail='wrong taxonomy name provided.')
     return query.filter(getattr(models.GMSCMetadata, rank) == taxonomy)
 
 
@@ -159,6 +163,7 @@ def get_family(accession: str, db: Session, request: Request):
         associated_amps=get_associated_amps(accession, db),
         downloads=get_fam_downloads(accession, db=db, request=request)
     )
+    print(family)
     return family
 
 
