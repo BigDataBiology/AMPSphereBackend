@@ -1,10 +1,21 @@
 API path	Input accession	Input query	Input type	Response code	Exception detail
+/v1/amps		exp_evidence=Passed	valid	200	
+/v1/amps		exp_evidence=Failed	valid	200	
+/v1/amps		antifam=Passed	valid	200	
+/v1/amps		antifam=Failed	valid	200	
+/v1/amps		antifam=Not tested	valid	200	
+/v1/amps		RNAcode=Passed	valid	200	
+/v1/amps		RNAcode=Failed	valid	200	
+/v1/amps		RNAcode=Not tested	valid	200	
+/v1/amps		coordinates=Passed	valid	200	
+/v1/amps		coordinates=Failed	valid	200	
+/v1/amps		coordinates=Not tested	valid	200	
 /v1/amps		family=SPHERE-III.000_001	valid	200	
 /v1/amps		family=fake_family	valid	200	
 /v1/amps		habitat=human gut	valid	200	
 /v1/amps		habitat=fake_habitat	valid	200	
 /v1/amps		microbial_source=Xanthobacteraceae	valid	200	
-/v1/amps		microbial_source=fake_origin	valid	200	
+/v1/amps		microbial_source=fake_origin	invalid	400	
 /v1/amps		sample=orion-mom_HD.S47-x-224-x-ST	valid	200	
 /v1/amps		sample=fake_sample	valid	200	
 /v1/amps/{accession}	AMP10.000_000		valid	200	
