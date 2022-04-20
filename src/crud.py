@@ -223,9 +223,9 @@ def get_fam_downloads(accession, db: Session, request: Request):
     path_bases = dict(
         alignment=str(url_prefix + '.aln'),
         sequences=str(url_prefix + '.faa'),
-        hmm_logo=str(url_prefix + '.png'),
+        # hmm_logo=str(url_prefix + '.png'),
         hmm_profile=str(url_prefix + '.hmm'),
-        sequence_logo=str(url_prefix + '.pdf'),
+        # sequence_logo=str(url_prefix + '.pdf'),
         tree_figure=str(url_prefix + '.ascii'),
         tree_nwk=str(url_prefix + '.nwk')
     )

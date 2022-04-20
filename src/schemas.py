@@ -200,9 +200,9 @@ class PagedAMPs(BaseModel):
 class FamilyDownloads(BaseModel):
     alignment: str
     sequences: str
-    hmm_logo: str
+    # hmm_logo: str
     hmm_profile: str
-    sequence_logo: str
+    # sequence_logo: str
     tree_figure: str
     tree_nwk: str
 
