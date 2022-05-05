@@ -14,13 +14,20 @@ wget -c https://data.gtdb.ecogenomic.org/releases/release95/95.0/bac120_metadata
 wget -c https://data.gtdb.ecogenomic.org/releases/release95/95.0/bac120_taxonomy_r95.tsv.gz -P $TMP_DIR --no-check-certificate
 
 # Generate necessary tables in order to create a sqlite database.
-python ./scripts/generate_main_db_tables.py tmp \
+python ./scripts/generate_main_db_tables.py ${TMP_DIR} \
 --metadata data/original_data/metadata_analysis/outputs/gmsc_amp_genes_envohr_source.tsv.gz \
 --faa data/original_data/AMPSphere_generation_v.${VERSION_CODE}/analysis/AMPSphere_v.${VERSION_CODE}.faa.gz \
 --fna data/original_data/AMPSphere_generation_v.${VERSION_CODE}/analysis/AMPSphere_v.${VERSION_CODE}.fna.xz \
 --features data/original_data/AMPSphere_generation_v.${VERSION_CODE}/analysis/AMPSphere_v.${VERSION_CODE}.features_for_web.tsv.gz \
 --quality data/original_data/zenodo_repo/AMPSphere_v.${VERSION_CODE}.quality_assessment.tsv.gz \
---gtdb-files tmp/bac120_metadata_r95.tar.gz/bac120_metadata_r95.tsv tmp/ar122_metadata_r95.tar.gz/ar122_metadata_r95.tsv
+--gtdb-files ${TMP_DIR}/bac120_metadata_r95.tar.gz/bac120_metadata_r95.tsv ${TMP_DIR}/ar122_metadata_r95.tar.gz/ar122_metadata_r95.tsv
+
+# Move generated tables
+mkdir data/tables
+mv ${TMP_DIR}/AMP.tsv data/tables/AMP.tsv
+mv ${TMP_DIR}/GMSCMetadata.tsv data/tables/GMSCMetadata.tsv
+mv ${TMP_DIR}/GTDBTaxonRank.tsv data/tables/GTDBTaxonRank.tsv
+mv ${TMP_DIR}/Statistics.tsv data/tables/Statistics.tsv
 
 # Generate sqlite3 database
 DB_DIR='data/ampsphere_main_db'
@@ -48,4 +55,5 @@ mmseqs createindex ${DB_DIR}/AMPSphere_latest.mmseqsdb ${DB_DIR}/tmp
 # Generate hmmprofile database
 DB_DIR='data/hmmprofile_db'
 mkdir DB_DIR
-cat data/pre_computed/families/hmm/*.hmm > data/hmmprofile_db/AMPSphere_v.${VERSION_CODE}.hmm
+cat data/pre_computed/families/hmm/*.hmm > data/hmmprofile_db/AMPSphere_latest.hmm
+hmmpress data/hmmprofile_db/AMPSphere_latest.hmm
