@@ -137,25 +137,20 @@ def fam_download_file(accession: str, file: str):
 
 
 def get_downloads():
-    return ['main_db',
-            'search_db:mmseqs',
-            'search_db:hmmer',
-            'tables:AMPs',
-            'tables:Metadata',
-            'tables:GMSC',
-            'tables:Statistics'
-            ]
+    return ['AMPSphere_latest.sqlite',
+            'AMPSphere_latest.mmseqsdb',
+            'AMPSphere_latest.hmm',
+            'AMP.tsv',
+            'GMSCMetadata.tsv']
 
 
 def download(file_type: str):
     mapping = {
-        'main_db': './data/ampsphere_main_db/AMPSphere_v.2021-03.sqlite',
-        'search_db:mmseqs': './data/mmseqs_db/AMPSphere_v.2021-03.mmseqsdb',
-        'search_db:hmmer': './data/hmmprofile_db/AMPSphere_v2021-03.hmm',
-        'tables:AMP': 'data/tables/AMP.tsv',
-        'tables:Metadata': 'data/tables/Metadata.tsv',
-        'tables:GMSC': 'data/tables/GMSC.tsv',
-        'tables:Statistics': 'data/tables/Statistics.tsv'
+        'AMPSphere_latest.sqlite': './data/ampsphere_main_db/AMPSphere_latest.sqlite',
+        'AMPSphere_latest.mmseqsdb': './data/mmseqs_db/AMPSphere_latest.mmseqsdb',
+        'AMPSphere_latest.hmm': './data/hmmprofile_db/AMPSphere_latest.hmm',
+        'AMP.tsv': 'data/tables/AMP.tsv',
+        'GMSCMetadata.tsv': 'data/tables/GMSCMetadata.tsv',
     }
     return mapping[file_type]
 

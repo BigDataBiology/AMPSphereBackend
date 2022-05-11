@@ -107,15 +107,14 @@ def get_amp(accession: str, db: Session):
     return amp_obj
 
 
-def get_amp_helicalwheel(accession):
-    return "data/pre_computed/amps/helical_wheels/helicalwheel_{}.svg".format(accession)
-
-
 def get_amp_metadata(accession: str, db: Session, page: int, page_size: int):
     query = db.query(models.GMSCMetadata).filter(models.GMSCMetadata.AMP == accession)
     data = query.offset(page * page_size).limit(page_size).all()
     if len(data) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
+    # for gene in data:
+    #     sources = [getattr(gene, 'micorbial_source_{}'.format(l)) for l in 'dpcofgs' if getattr(gene, 'micorbial_source_{}'.format(l))]
+    #     setattr(gene, "microbial_source", )
     metadata_info = get_query_page_info(q=query, page_size=page_size, page=page)
     metadata = types.SimpleNamespace()
     metadata.info = metadata_info

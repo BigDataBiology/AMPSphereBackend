@@ -73,15 +73,6 @@ def amp(accession: str,
     return crud.get_amp(accession, db)
 
 
-@amp_router.get(path="/{accession}/helicalwheel",
-                # response_class=FileResponse,
-                summary=default_route_summary)
-def amp_helicalwheel(accession: str):
-    path = crud.get_amp_helicalwheel(accession)
-    print(path)
-    return FileResponse(path)
-
-
 @amp_router.get(path="/{accession}/features",
                 response_model=schemas.AMPFeatures,
                 summary=default_route_summary)
