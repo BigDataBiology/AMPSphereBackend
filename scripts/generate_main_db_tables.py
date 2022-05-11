@@ -97,14 +97,15 @@ statistics['family'] = sum(AMP_table.family.value_counts() >= 8)
 del AMP_table, features, quality
 
 print('\t GMSC table...', end=' ', flush=True)
-metadata['source'] = metadata.apply(lambda row: row['source'] if row['is_metagenomic'] else ncbi_id_to_gtdb_tax[row['source']], axis=1)
+metadata['source'] = metadata.apply(lambda row: row['source'] if row['is_metagenomic'] 
+                else ncbi_id_to_gtdb_tax[int(row['sample'].split('.')[0])], axis=1)
 GMSC_cols += metadata.columns.tolist()
 gmsc_table = gmsc_table.merge(metadata, left_on='accession', right_on='gmsc', how='outer')[GMSC_cols]
 del metadata
 GMSC_cols += taxonomy_cols
 gmsc_table = gmsc_table.merge(taxonomy, left_on='source', right_on='index', how='left', copy=False)[GMSC_cols]
 gmsc_table = gmsc_table.drop(columns=['gmsc', 'amp', 'source'])
-gmsc_table.loc[gmsc_table.is_metagenomic == 'False', 'general_envo_name'] = 'Progenomes'
+gmsc_table.loc[gmsc_table.is_metagenomic == False, 'general_envo_name'] = 'Progenomes'
 gmsc_table.to_csv(output_dir.joinpath('GMSCMetadata.tsv'), sep='\t', index=False)
 """
     gmsc=0,

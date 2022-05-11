@@ -39,11 +39,6 @@ sqlite3 ${DB_DIR}/AMPSphere_latest.sqlite < ./scripts/import.sql
 mkdir data/pre_computed/families
 cp -r data/original_data/AMPSphere_generation_v.${VERSION_CODE}/analysis/families/* data/pre_computed/families
 
-# Uncompress the helical wheels
-mkdir data/pre_computed/amps
-mkdir data/pre_computed/amps/helical_wheels
-tar zxf data/original_data/AMPSphere_generation_v.${VERSION_CODE}/analysis/helical_wheels.tgz -C data/pre_computed/amps/helical_wheels/
-
 # Generate mmseqs database and index
 # TODO Tested
 DB_DIR='data/mmseqs_db'
@@ -54,6 +49,7 @@ mmseqs createindex ${DB_DIR}/AMPSphere_latest.mmseqsdb ${DB_DIR}/tmp
 
 # Generate hmmprofile database
 DB_DIR='data/hmmprofile_db'
-mkdir DB_DIR
+rm -rf $DB_DIR
+mkdir $DB_DIR
 cat data/pre_computed/families/hmm/*.hmm > data/hmmprofile_db/AMPSphere_latest.hmm
 hmmpress data/hmmprofile_db/AMPSphere_latest.hmm
