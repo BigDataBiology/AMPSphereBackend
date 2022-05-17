@@ -32,7 +32,7 @@ args = parser.parse_args()
 
 print('Loading input data...', end=' ')
 metadata_file = pathlib.Path(args.metadata)
-metadata = dt.fread(args.metadata, sep='\t', na_strings=['N.A.']).to_pandas()
+metadata = dt.fread(args.metadata, sep='\t', na_strings=['NA']).to_pandas()
 features = dt.fread(args.features, sep='\t').to_pandas()
 with gzip.open(args.faa, 'rt') as f:
     faa = SeqIO.parse(f, 'fasta')
