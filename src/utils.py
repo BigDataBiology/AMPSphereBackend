@@ -13,6 +13,7 @@ from Bio import SearchIO, AlignIO
 from Bio.Align import AlignInfo
 from Bio.pairwise2 import format_alignment
 import livingTree as lt
+from collections import OrderedDict
 
 
 def parse_config():
@@ -240,7 +241,7 @@ def compute_distribution_from_query_data(query_data):
     if len(query_data) > 0:
         metadata = pd.DataFrame([obj.__dict__ for obj in query_data]).drop(columns='_sa_instance_state')
         # print(metadata)
-        color_map = {}  # TODO supply here
+        color_map = {}
         metadata['latitude'] = metadata['latitude'].replace('', np.nan).astype(float).round(1)
         metadata['longitude'] = metadata['longitude'].replace('', np.nan).astype(float).round(1)
         metadata['habitat_type'] = pd.Categorical(metadata['general_envo_name'].apply(lambda x: x.split(':')[0]))
@@ -265,19 +266,25 @@ def compute_distribution_from_query_data(query_data):
             data['habitat'] = dict(zip(['labels', 'parents', 'values'], [[], [], []]))
 
         def simplify(data):
-            data = data.sort_values(by='size', ascending=False)
-            top_9 = data[0:9]
-            return pd.DataFrame(top_9.values.tolist(), columns=data.columns).append(
-                {'microbial_source_s': 'others', 'size': data.loc[9:, 'size'].sum()},
-                ignore_index=True
-            )
+            data = data.sort_values(by='size', ascending=False).set_index('microbial_source_s')['size']
+            data = OrderedDict(zip(data.index.tolist(), data.tolist()))
+            print(data)
+            others_count = 0
+            result = OrderedDict()
+            for key, value in data.items():
+                if key == '':
+                    others_count += value
+                elif len(result) < 10:
+                    result[key] = value
+                else:
+                    others_count += value
+            result['others *'] = others_count
+            return result
 
-        if data['microbial_source'].shape[0] > 9:
-            data['microbial_source'] = simplify(data['microbial_source'])
-        # print()
+        data['microbial_source'] = simplify(data['microbial_source'])
         data['microbial_source'] = dict(
-            labels=data['microbial_source']['microbial_source_s'].tolist(),
-            values=data['microbial_source']['size'].tolist()
+            labels=list(data['microbial_source'].keys()),
+            values=list(data['microbial_source'].values())
         )
         print(data['microbial_source'])
         return data
@@ -297,6 +304,3 @@ def compute_distribution_from_query_data(query_data):
             habitat=empty_sunburst,
             geo=empty_bubblemap
         )
-
-# paths_values = pd.DataFrame({'path': ['a:b', 'a:c', 'a:d'], 'value': [1, 2, 3]})
-# print(get_sunburst_data(paths_values, sep=':'))
