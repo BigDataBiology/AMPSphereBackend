@@ -91,7 +91,7 @@ def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
     paged_amps = types.SimpleNamespace()
     paged_amps.info = info
     paged_amps.data = data
-    # print(paged_amps)
+    # print(data[0].__dict__['metadata'].data[0].__dict__)
     return paged_amps
 
 
@@ -112,9 +112,6 @@ def get_amp_metadata(accession: str, db: Session, page: int, page_size: int):
     data = query.offset(page * page_size).limit(page_size).all()
     if len(data) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    # for gene in data:
-    #     sources = [getattr(gene, 'micorbial_source_{}'.format(l)) for l in 'dpcofgs' if getattr(gene, 'micorbial_source_{}'.format(l))]
-    #     setattr(gene, "microbial_source", )
     metadata_info = get_query_page_info(q=query, page_size=page_size, page=page)
     metadata = types.SimpleNamespace()
     metadata.info = metadata_info
