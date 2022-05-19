@@ -14,51 +14,76 @@ from fastapi import HTTPException, Request
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 
 
-def filter_by_criteria(query, query_table, **criteria):
-    table_cols_mapper = dict(
-        Metadata=dict(habitat='general_envo_name', microbial_source='microbial_source', sample_genome='sample'),
-        AMP=dict(pep_length_interval='length', mw_interval='molecular_weight', pI_interval='isoelectric_point',
-                 charge_interval='charge', family='family'),
-        Quality=dict(quality='badge')
-    )
+def filter_by_criteria(query, db, **criteria):
+    """
+    Possible criteria:
+        exp_evidence: str = None,
+        antifam: str = None,
+        RNAcode: str = None,
+        coordinates: str = None,
+        family: str = None,
+        habitat: str = None,
+        sample: str = None,
+        microbial_source: str = None,
+        pep_length_interval: str = None,
+        mw_interval: str = None,
+        pI_interval: str = None,
+        charge_interval: str = None,
+    """
+    cols_mapper = dict(   # Mapping from query filter names to table column names
+        GMSCMetadata=dict(
+            habitat='general_envo_name', 
+            microbial_source='microbial_source', 
+            sample_genome='sample'),
+        AMP=dict(
+            antifam='Antifam',
+            RNAcode='RNAcode',
+            coordinates='coordinates',
+            pep_length_interval='length', 
+            mw_interval='molecular_weight',
+            pI_interval='isoelectric_point',
+            charge_interval='charge', 
+            family='family'))
 
     criteria = {key: value for key, value in criteria.items() if value}
+    print(criteria)
     print("Filters applied:", criteria)
-    # print('Query statement (original):', query)
-    query = join_necessary_tables(query, query_table, criteria, table_cols_mapper)
-    # print('Query statement (after joining):', query)
 
-    for key, value in criteria.items():
-        if key in {'habitat', 'microbial_source', 'sample_genome'}:
-            query = query.filter(getattr(models.Metadata, table_cols_mapper['Metadata'][key]) == value)
-        elif key == 'quality':
-            query = query.filter(getattr(models.Quality, table_cols_mapper['Quality'][key]) == value)
-        elif key == 'family':
-            query = query.filter(getattr(models.AMP, table_cols_mapper['AMP'][key]) == value)
-        elif key in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
+    for filter, value in criteria.items():
+        if filter in {'habitat', 'sample_genome'}:
+            query = query.filter(getattr(models.GMSCMetadata, cols_mapper['GMSCMetadata'][filter]) == value)
+        elif filter == 'microbial_source':
+            query = filter_by_gtdb_taxonomy(query, taxonomy=value, db=db)
+        elif filter == 'exp_evidence' and value == 'Passed':
+            print('filtering by exp_evidence == {}'.format(value))
+            query = query.filter(or_(models.AMP.metaproteomes == 'Passed', models.AMP.metatranscriptomes == 'Passed'))
+        elif filter == 'exp_evidence' and value == 'Failed':
+            print('filtering by exp_evidence == {}'.format(value))
+            query = query.filter(and_(models.AMP.metaproteomes == 'Failed', models.AMP.metatranscriptomes == 'Failed'))
+        elif filter in {'family', 'antifam', 'RNAcode', 'coordinates'}:
+            query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == value)
+        elif filter in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
             min_max: [str] = value.split(',')
-            col_values = getattr(models.AMP, table_cols_mapper['AMP'][key])
+            col_values = getattr(models.AMP, cols_mapper['AMP'][filter])
             query = query.filter(and_(float(min_max[0]) <= col_values, col_values <= float(min_max[1])))
     return query
 
 
-def join_necessary_tables(query, query_table, criteria, table_cols_mapper):
-    table_entities = dict(Metadata=models.Metadata, AMP=models.AMP, Quality=models.Quality)
-    for filter_table_name, cols in table_cols_mapper.items():
-        if set(criteria.keys()).intersection(cols.keys()) and query_table != filter_table_name:
-            # print('Filter table: {}, Query table: {}. Joining filter table...'.format(filter_table_name, query_table))
-            if {filter_table_name, query_table} == {'Metadata', 'Quality'}:
-                query = query.join(table_entities[filter_table_name],
-                                   models.Metadata.AMPSphere_code == models.Quality.AMP)
-            else:
-                query = query.join(table_entities[filter_table_name])
-    return query
+def filter_by_gtdb_taxonomy(query, taxonomy, db, rank=None):
+    if not rank: 
+        rank_ = db.query(models.GTDBTaxonRank.microbial_source_rank).\
+            filter(models.GTDBTaxonRank.gtdb_taxon == taxonomy).first()
+        if rank_:
+            rank = rank_[0]
+        else:
+            raise HTTPException(status_code=400, detail='wrong taxonomy name provided.')
+    return query.filter(getattr(models.GMSCMetadata, rank) == taxonomy)
 
 
 def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
-    query = db.query(distinct(models.AMP.accession))
+    query = db.query(distinct(models.AMP.accession)).join(models.GMSCMetadata)
     # print(query)
-    query = filter_by_criteria(query=query, query_table="AMP", **kwargs)
+    query = filter_by_criteria(query=query, db=db, **kwargs)
     accessions = query.offset(page * page_size).limit(page_size).all()
     # print(accessions)
     data = [get_amp(accession, db) for accession, in accessions]
@@ -66,7 +91,7 @@ def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
     paged_amps = types.SimpleNamespace()
     paged_amps.info = info
     paged_amps.data = data
-    # print(paged_amps)
+    # print(data[0].__dict__['metadata'].data[0].__dict__)
     return paged_amps
 
 
@@ -74,43 +99,16 @@ def get_amp(accession: str, db: Session):
     amp_obj = db.query(models.AMP).filter(models.AMP.accession == accession).first()
     if not amp_obj:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    # gene_seqs = db.query(models.GMSC.gene_sequence).filter(models.GMSC.AMP == accession).all()
-    # features = utils.get_amp_features(amp_obj.sequence)
     feature_graph_points = utils.get_graph_points(amp_obj.sequence)
     metadata = get_amp_metadata(accession, db, page=0, page_size=5)
     setattr(amp_obj, "feature_graph_points", feature_graph_points)
-    # setattr(amp_obj, "gene_sequences", gene_seqs)
     setattr(amp_obj, "secondary_structure", utils.get_secondary_structure(amp_obj.sequence))
     setattr(amp_obj, "metadata", metadata)
-    setattr(amp_obj, "quality", get_amp_quality(accession, db))
     return amp_obj
 
 
-def get_amp_quality(accession, db):
-    return db.query(models.Quality).filter(models.Quality.AMP == accession).first()
-
-
-def get_amp_helicalwheel(accession):
-    return "data/pre_computed/amps/helical_wheels/helicalwheel_{}.svg".format(accession)
-
-
 def get_amp_metadata(accession: str, db: Session, page: int, page_size: int):
-    query = db.query(
-        models.Metadata.AMPSphere_code,
-        models.Metadata.GMSC,
-        models.GMSC.gene_sequence,
-        models.Metadata.sample,
-        models.Metadata.general_envo_name,
-        models.Metadata.environment_material,
-        models.Metadata.latitude,
-        models.Metadata.longitude,
-        models.Metadata.microbial_source,
-        models.Metadata.specI,
-    ).outerjoin(
-        models.GMSC, models.Metadata.GMSC == models.GMSC.accession
-    ).filter(
-        models.Metadata.AMPSphere_code == accession
-    )
+    query = db.query(models.GMSCMetadata).filter(models.GMSCMetadata.AMP == accession)
     data = query.offset(page * page_size).limit(page_size).all()
     if len(data) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
@@ -131,8 +129,7 @@ def get_amp_features(accession: str, db: Session):
 
 
 def get_families(db: Session, page: int, page_size: int, request: Request, **kwargs):
-    query = db.query(distinct(models.AMP.family)).outerjoin(models.Metadata)
-
+    query = db.query(distinct(models.AMP.family)).outerjoin(models.GMSCMetadata)
     # Mapping from filter keys to table columns
     metadata_cols = {
         'habitat': 'general_envo_name',
@@ -140,7 +137,7 @@ def get_families(db: Session, page: int, page_size: int, request: Request, **kwa
         'sample': 'sample'}
     for key, value in kwargs.items():
         if value:
-            query = query.filter(getattr(models.Metadata, metadata_cols[key]) == value)
+            query = query.filter(getattr(models.GMSCMetadata, metadata_cols[key]) == value)
     accessions = query.offset(page * page_size).limit(page_size).all()
     # if len(accessions) == 0:
     #     raise HTTPException(status_code=400, detail='invalid filter applied.')
@@ -162,6 +159,7 @@ def get_family(accession: str, db: Session, request: Request):
         associated_amps=get_associated_amps(accession, db),
         downloads=get_fam_downloads(accession, db=db, request=request)
     )
+    print(family)
     return family
 
 
@@ -169,7 +167,7 @@ def get_fam_metadata(accession: str, db: Session, page: int, page_size: int):
     amp_accessions = db.query(models.AMP.accession).filter(models.AMP.family == accession).all()
     amp_accessions = [accession for accession, in amp_accessions]
     # TODO FIX HERE
-    m = db.query(models.Metadata).filter(models.Metadata.AMPSphere_code.in_(amp_accessions)). \
+    m = db.query(models.GMSCMetadata).filter(models.GMSCMetadata.AMPSphere_code.in_(amp_accessions)). \
         offset(page * page_size).limit(page_size).all()
     return [row.__dict__ for row in m]
 
@@ -194,9 +192,9 @@ def get_associated_amps(accession, db):
 
 def get_distributions(accession: str, db: Session):
     if accession.startswith('AMP'):
-        raw_data = db.query(models.Metadata).filter(models.Metadata.AMPSphere_code == accession).all()
+        raw_data = db.query(models.GMSCMetadata).filter(models.GMSCMetadata.AMP == accession).all()
     elif accession.startswith('SPHERE'):
-        raw_data = db.query(models.Metadata).outerjoin(models.AMP).filter(models.AMP.family == accession).all()
+        raw_data = db.query(models.GMSCMetadata).outerjoin(models.AMP).filter(models.AMP.family == accession).all()
     else:
         raw_data = []
     if len(raw_data) == 0:
@@ -221,9 +219,9 @@ def get_fam_downloads(accession, db: Session, request: Request):
     path_bases = dict(
         alignment=str(url_prefix + '.aln'),
         sequences=str(url_prefix + '.faa'),
-        hmm_logo=str(url_prefix + '.png'),
+        # hmm_logo=str(url_prefix + '.png'),
         hmm_profile=str(url_prefix + '.hmm'),
-        sequence_logo=str(url_prefix + '.pdf'),
+        # sequence_logo=str(url_prefix + '.pdf'),
         tree_figure=str(url_prefix + '.ascii'),
         tree_nwk=str(url_prefix + '.nwk')
     )
@@ -238,15 +236,15 @@ def search_by_text(db: Session, text: str, page: int, page_size: int):
     :return:
     """
     # TODO retrieve text search result using the command: sqlite-utils search ampsphere_main_db/AMPSphere_v.2021-03.sqlite Metadata {search text}
-    query = db.query(distinct(models.AMP.accession)).outerjoin(models.Metadata)
+    query = db.query(distinct(models.AMP.accession)).outerjoin(models.GMSCMetadata)
     # Consider blank space as + for query text.
     query = query.filter(or_(
         models.AMP.accession.like(text),
         models.AMP.family.like(text),
-        models.Metadata.GMSC.like(text),
-        models.Metadata.sample.like(text),
-        models.Metadata.general_envo_name.like(text),
-        models.Metadata.microbial_source.like(text),
+        models.GMSCMetadata.GMSC.like(text),
+        models.GMSCMetadata.sample.like(text),
+        models.GMSCMetadata.general_envo_name.like(text),
+        models.GMSCMetadata.microbial_source.like(text),
     ))
 
     accessions = query.offset(page * page_size).limit(page_size).all()
@@ -269,10 +267,10 @@ def get_statistics(db: Session):
         num_amps=stats.amp,
         num_families=stats.family,
         num_habitats=stats.general_envo_name,
-        num_genomes=db.query(func.count(distinct(models.Metadata.sample))).filter(
-            models.Metadata.is_metagenomic == "False").scalar(),
-        num_metagenomes=db.query(func.count(distinct(models.Metadata.sample))).filter(
-            models.Metadata.is_metagenomic == "True").scalar(),
+        num_genomes=db.query(func.count(distinct(models.GMSCMetadata.sample))).filter(
+            models.GMSCMetadata.is_metagenomic == "False").scalar(),
+        num_metagenomes=db.query(func.count(distinct(models.GMSCMetadata.sample))).filter(
+            models.GMSCMetadata.is_metagenomic == "True").scalar(),
     )
 
 
@@ -294,44 +292,45 @@ def get_query_page_info(q: Query, page_size: int, page: int):
     return info
 
 
-def get_filtered_options(db: Session, **kwargs):
-    habitat, = zip(*filter_by_criteria(
-        query=db.query(models.Metadata.general_envo_name), query_table="Metadata", **kwargs).distinct())
-    microbial_source, = zip(*filter_by_criteria(
-        query=db.query(models.Metadata.microbial_source), query_table="Metadata", **kwargs).distinct())
-    quality, = zip(*filter_by_criteria(
-        query=db.query(models.Quality.badge), query_table="Quality", **kwargs).distinct())
-    peplen_min, peplen_max, mw_min, mw_max, pI_min, pI_max, charge_min, charge_max = \
-        filter_by_criteria(
-            query=db.query(
-                func.min(models.AMP.length),
-                func.max(models.AMP.length),
-                func.min(models.AMP.molecular_weight),
-                func.max(models.AMP.molecular_weight),
-                func.min(models.AMP.isoelectric_point),
-                func.max(models.AMP.isoelectric_point),
-                func.min(models.AMP.charge),
-                func.max(models.AMP.charge)),
-            query_table="AMP",
-            **kwargs).first()
-    print('Query finished.')
-    round_floor = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_FLOOR)
-    round_ceiling = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_CEILING)
-    return dict(
-        quality=quality,
-        habitat=habitat,
-        microbial_source=microbial_source,   # FIXME query of distinct microbial sources of human gut is too slow.
-        pep_length=dict(min=int(peplen_min), max=int(peplen_max) + 1),
-        molecular_weight=dict(min=round_floor(mw_min), max=round_ceiling(mw_max)),
-        isoelectric_point=dict(min=round_floor(pI_min), max=round_ceiling(pI_max)),
-        charge_at_pH_7=dict(min=round_floor(charge_min), max=round_ceiling(charge_max))
-    )
+# Deprecated.
+# def get_filtered_options(db: Session, **kwargs):
+#     habitat, = zip(*filter_by_criteria(
+#         query=db.query(models.GMSCMetadata.general_envo_name), query_table="Metadata", **kwargs).distinct())
+#     microbial_source, = zip(*filter_by_criteria(
+#         query=db.query(models.GMSCMetadata.microbial_source), query_table="Metadata", **kwargs).distinct())
+#     quality, = zip(*filter_by_criteria(
+#         query=db.query(models.Quality.badge), query_table="Quality", **kwargs).distinct())
+#     peplen_min, peplen_max, mw_min, mw_max, pI_min, pI_max, charge_min, charge_max = \
+#         filter_by_criteria(
+#             query=db.query(
+#                 func.min(models.AMP.length),
+#                 func.max(models.AMP.length),
+#                 func.min(models.AMP.molecular_weight),
+#                 func.max(models.AMP.molecular_weight),
+#                 func.min(models.AMP.isoelectric_point),
+#                 func.max(models.AMP.isoelectric_point),
+#                 func.min(models.AMP.charge),
+#                 func.max(models.AMP.charge)),
+#             query_table="AMP",
+#             **kwargs).first()
+#     print('Query finished.')
+#     round_floor = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_FLOOR)
+#     round_ceiling = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_CEILING)
+#     return dict(
+#         quality=quality,
+#         habitat=habitat,
+#         microbial_source=microbial_source,   # FIXME query of distinct microbial sources of human gut is too slow.
+#         pep_length=dict(min=int(peplen_min), max=int(peplen_max) + 1),
+#         molecular_weight=dict(min=round_floor(mw_min), max=round_ceiling(mw_max)),
+#         isoelectric_point=dict(min=round_floor(pI_min), max=round_ceiling(pI_max)),
+#         charge_at_pH_7=dict(min=round_floor(charge_min), max=round_ceiling(charge_max))
+#     )
 
 
 def get_all_options(db: Session):
-    habitat, = zip(*db.query(models.Metadata.general_envo_name).distinct())
-    microbial_source, = zip(*db.query(models.Metadata.microbial_source).distinct())
-    quality, = zip(*db.query(models.Quality.badge).distinct())
+    habitat, = zip(*db.query(models.GMSCMetadata.general_envo_name).distinct())
+    microbial_source, = zip(*db.query(models.GTDBTaxonRank.gtdb_taxon).distinct())
+    quality, = zip(*db.query(models.AMP.RNAcode).distinct())
     peplen_min, peplen_max, mw_min, mw_max, \
     pI_min, pI_max, charge_min, charge_max = db.query(
         func.min(models.AMP.length),
@@ -360,7 +359,7 @@ def entity_in_db(db, entity_type, accession):
     if entity_type == 'family':
         exists = db.query(db.query(models.AMP).filter(models.AMP.family == accession).exists()).scalar()
     elif entity_type in {'sample', 'genome'}:
-        exists = db.query(db.query(models.Metadata).filter(models.Metadata.sample == accession).exists()).scalar()
+        exists = db.query(db.query(models.GMSCMetadata).filter(models.GMSCMetadata.sample == accession).exists()).scalar()
     else:
         exists = False
     return exists
@@ -430,6 +429,7 @@ def get_family_by_amp(amp_accession, db):
 
 
 def hmmscan_search(seq: str):
+    # FIXME this doesn't work but reports no error, what happened?
     query_id = str(utils.uuid.uuid4())
     query_time_now = utils.datetime.now()
     tmp_dir = pathlib.Path(utils.cfg['tmp_dir'])

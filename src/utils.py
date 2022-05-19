@@ -13,6 +13,7 @@ from Bio import SearchIO, AlignIO
 from Bio.Align import AlignInfo
 from Bio.pairwise2 import format_alignment
 import livingTree as lt
+from collections import OrderedDict
 
 
 def parse_config():
@@ -137,25 +138,20 @@ def fam_download_file(accession: str, file: str):
 
 
 def get_downloads():
-    return ['main_db',
-            'search_db:mmseqs',
-            'search_db:hmmer',
-            'tables:AMPs',
-            'tables:Metadata',
-            'tables:GMSC',
-            'tables:Statistics'
-            ]
+    return ['AMPSphere_latest.sqlite',
+            'AMPSphere_latest.mmseqsdb',
+            'AMPSphere_latest.hmm',
+            'AMP.tsv',
+            'GMSCMetadata.tsv']
 
 
 def download(file_type: str):
     mapping = {
-        'main_db': './data/ampsphere_main_db/AMPSphere_v.2021-03.sqlite',
-        'search_db:mmseqs': './data/mmseqs_db/AMPSphere_v.2021-03.mmseqsdb',
-        'search_db:hmmer': './data/hmmprofile_db/AMPSphere_v2021-03.hmm',
-        'tables:AMP': 'data/tables/AMP.tsv',
-        'tables:Metadata': 'data/tables/Metadata.tsv',
-        'tables:GMSC': 'data/tables/GMSC.tsv',
-        'tables:Statistics': 'data/tables/Statistics.tsv'
+        'AMPSphere_latest.sqlite': './data/ampsphere_main_db/AMPSphere_latest.sqlite',
+        'AMPSphere_latest.mmseqsdb': './data/mmseqs_db/AMPSphere_latest.mmseqsdb',
+        'AMPSphere_latest.hmm': './data/hmmprofile_db/AMPSphere_latest.hmm',
+        'AMP.tsv': 'data/tables/AMP.tsv',
+        'GMSCMetadata.tsv': 'data/tables/GMSCMetadata.tsv',
     }
     return mapping[file_type]
 
@@ -245,21 +241,21 @@ def compute_distribution_from_query_data(query_data):
     if len(query_data) > 0:
         metadata = pd.DataFrame([obj.__dict__ for obj in query_data]).drop(columns='_sa_instance_state')
         # print(metadata)
-        color_map = {}  # TODO supply here
+        color_map = {}
         metadata['latitude'] = metadata['latitude'].replace('', np.nan).astype(float).round(1)
         metadata['longitude'] = metadata['longitude'].replace('', np.nan).astype(float).round(1)
         metadata['habitat_type'] = pd.Categorical(metadata['general_envo_name'].apply(lambda x: x.split(':')[0]))
         # print(metadata[['habitat_type', 'microontology']])
         # metadata['color'] = metadata['habitat_type'].map(color_map)
         data = dict(
-            geo=metadata[['AMPSphere_code', 'latitude', 'longitude', 'habitat_type']].
+            geo=metadata[['AMP', 'latitude', 'longitude', 'habitat_type']].
                 groupby(['latitude', 'longitude', 'habitat_type'], as_index=False, observed=True).size(),
-            habitat=metadata[['AMPSphere_code', 'general_envo_name', 'habitat_type']].
+            habitat=metadata[['AMP', 'general_envo_name', 'habitat_type']].
                 groupby(['general_envo_name', 'habitat_type'], as_index=False, observed=True).size(),
-            microbial_source=metadata[['AMPSphere_code', 'microbial_source']].
-                groupby('microbial_source', as_index=False).size()
+            microbial_source=metadata[['AMP', 'microbial_source_s']].
+                groupby('microbial_source_s', as_index=False).size()
         )
-        names = {'latitude': 'lat', 'longitude': 'lon', 'AMPSphere_code': 'size'}
+        names = {'latitude': 'lat', 'longitude': 'lon', 'AMP': 'size'}
         data['geo'].rename(columns=names, inplace=True)
         data['geo'] = data['geo'].to_dict(orient='list')
         # FIXME hierarchical structure generation.
@@ -270,19 +266,25 @@ def compute_distribution_from_query_data(query_data):
             data['habitat'] = dict(zip(['labels', 'parents', 'values'], [[], [], []]))
 
         def simplify(data):
-            data = data.sort_values(by='size', ascending=False)
-            top_9 = data[0:9]
-            return pd.DataFrame(top_9.values.tolist(), columns=data.columns).append(
-                {'microbial_source': 'others', 'size': data.loc[9:, 'size'].sum()},
-                ignore_index=True
-            )
+            data = data.sort_values(by='size', ascending=False).set_index('microbial_source_s')['size']
+            data = OrderedDict(zip(data.index.tolist(), data.tolist()))
+            print(data)
+            others_count = 0
+            result = OrderedDict()
+            for key, value in data.items():
+                if key == '':
+                    others_count += value
+                elif len(result) < 10:
+                    result[key] = value
+                else:
+                    others_count += value
+            result['others *'] = others_count
+            return result
 
-        if data['microbial_source'].shape[0] > 9:
-            data['microbial_source'] = simplify(data['microbial_source'])
-        # print()
+        data['microbial_source'] = simplify(data['microbial_source'])
         data['microbial_source'] = dict(
-            labels=data['microbial_source']['microbial_source'].tolist(),
-            values=data['microbial_source']['size'].tolist()
+            labels=list(data['microbial_source'].keys()),
+            values=list(data['microbial_source'].values())
         )
         print(data['microbial_source'])
         return data
@@ -302,6 +304,3 @@ def compute_distribution_from_query_data(query_data):
             habitat=empty_sunburst,
             geo=empty_bubblemap
         )
-
-# paths_values = pd.DataFrame({'path': ['a:b', 'a:c', 'a:d'], 'value': [1, 2, 3]})
-# print(get_sunburst_data(paths_values, sep=':'))

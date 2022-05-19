@@ -1,0 +1,109 @@
+PRIDE_ID,PRIDE_TITLE,PRIDE_SPECIES,Publication
+PXD000114,Metaproteomics of Premature Infant Gut Colonization,human gut,PMID:26077811
+PXD000382,MetaProSIP: automated inference of stable isotope incorporation rates in proteins for functional metaproteomics,mock community,PMID:25412983
+PXD000412,Human dental calculus LC-MS/MS(oral microbiome),human mouth;cattle mouth;sheep mouth,PMID:24562188
+PXD000862,Metaproteomics: Optimization and evaluation of protein extraction from activated sludge,activated sludge,PMID:25116144
+PXD001490,Metaproteomics analyses of three chronically petroleum-polluted sites,sediment,PMID:26201687
+PXD001526,Rumen metaproteomics - Catching the tip of the iceberg - evaluation of sample preparation protocols for metaproteomic studies of the rumen microbiota,cattle rumen,PMID:25765363
+PXD001573,Enrichment or depletion? The impact of stool pretreatment on metaproteomic characterization of the human gut microbiota,human gut,PMID:25677681
+PXD001590,Metaproteomics of Optimal vs Suboptimal Biocathode (MCL),biofilm metagenome,PMID:26260905
+PXD003119,Protein stable isotope fingerprinting (P-SIF): Chocolate Pots (Yellowstone) biomass,microbial mat metagenome,
+PXD003125,Protein stable isotope fingerprinting (P-SIF): Mahoney Lake (Canada) 7-m biomass,microbial mat metagenome,
+PXD003151,Protein expression patterns associated with sucrose-induced dysbiosis are conserved across taxonomically diverse oral microcosm biofilm models of dental caries,human mouth,PMID:26684897
+PXD003275,Differential proteomics of Lenisia limosa (Breviatea) and its epibiotic Arcobacter symbion,Breviatea;Alteromonas macleodii atcc 27126;Arcobacter,PMID:27279223
+PXD003527,Mouse gut metaproteome - MetaPro-IQ: a universal metaproteomic approach to studying human and mouse gut microbiota,mouse gut,PMID:27343061
+PXD003528,Human MLI metaproteome - MetaPro-IQ: a universal metaproteomic approach to studying human and mouse gut microbiota,human gut,PMID:27343061
+PXD003791,MuSt multiomics - Integrated multi-omics of the human gut microbiome in a case study of familial type 1 diabetes,human gut,PMID:27723761
+PXD003896,HEK293 searched with UniProt Human and ComPIL,human gut,PMID:27528457
+PXD003907,Human Fecal Gut Microbiome proteomics,human gut,PMID:27528457
+PXD004039,Sequence database choice significantly affects taxonomic and functional metaproteomic results in gut microbiota studies,human gut,PMID:27671352
+PXD004319,"Metaproteomic profiling of saliva in subjects with periodontitis, dental caries and orally healthy controls",human mouth,PMID:27672500
+PXD004433,Saanich inlet water column metaproteomes,water associated,PMID:29087368
+PXD004512,Novel syntrophic populations dominate an ammonia-tolerant methanogenic microbiome,anthropogenic,PMID:27822555
+PXD004524,Sheep fecal microbiota - Diversity and functions of the sheep faecal microbiota: a multi-omic characterization,sheeep gut,PMID:28165194
+PXD004538,Quantitative metaproteomics highlight the metabolic contributions of uncultured phylotypes in a thermophilic anaerobic digester,anthropogenic,PMID:27815274
+PXD004911,Mouse caecum vs faeces - Metaproteogenomics Reveals Taxonomic and Functional Changes between Cecal and Fecal Microbiota in Mouse,mouse gut,PMID:28352255
+PXD004965,Angelo soil proteomics - Proteogenomic analyses indicate bacterial methylotrophy and archaeal heterotrophy are prevalent below the grass root zone,soil,PMID:27843720
+PXD005148,Lipases from Metagenomic Sources,soil,PMID:28253936
+PXD005351,"Proteomics of Cycloclasticus endosymbiont of deep-sea mussel Bathymodiolus heckerae from Campeche Knolls, southern Gulf of Mexico",mussel associated,PMID:28628098
+PXD005574,Metaproteomics on preterm infant stool,human gut,PMID:28684633
+PXD005619,Deep gut metaproteomics - A deep metaproteomics approach for the study of human microbiomes,human gut,PMID:28749657
+PXD005667,Quantitative metaproteomics and activity-based probe enrichment on fecal samples from a mouse model of inflammatory bowel disease,mouse gut,PMID:28052195
+PXD005910,2014 Panama soil proteomics - Community proteogenomics reveals the systemic impact of phosphorus availability on microbial functions in tropical soil,soil,PMID:29358607
+PXD005969,Evaluating the protein extraction methods for gut metaproteomics,human gut,PMID:28705725
+PXD006070,Rumen metaproteome - A Structural and Functional Elucidation of the Rumen Microbiome Influenced by Various Diets and Microenvironments,cattle rumen,PMID:28883813
+PXD006118,Metaproteomics of the marine gutless oligochaete Olavius algarvensis and its symbionts to determine stable isotope fingerprints using Direct Protein-SIF,mock community,PMID:29844191
+PXD006129,Fiber-associated microbiota protects against diet-induced amelioration of the colonic mucus barrier,mouse gut,PMID:29276171
+PXD006281,Meta-Proteomics profiling of a four species biofilm,mock community,PMID:29184101
+PXD006343,Metaproteomics of phototrophic biomats from two soda lakes in the Canadian Rocky Mountains,lake associated,PMID:29146960
+PXD006366,Re-analysis of an ultra-deep and quantitative saliva proteome,human saliva,PMID:29146960
+PXD006580,Viral BONCAT: Detection of HPG incorporation into newly synthesized viral proteins via proteomics,mock community,PMID:29159966
+PXD006688,Critical decisions in metaproteomics: achieving high confidence protein annotations in a sea of unknowns.,marine,PMID:27824341
+PXD006762,"Proteomes of twenty bacterial, archaeal and eukaryotic species for bench marking of Direct Protein-SIF (stable carbon isotope fingerprinting proteomics)",mock community,PMID:29844191
+PXD006808,Evaluating in vitro culture medium of mouse gut microbiome,mouse gut,
+PXD007077,Soil metaproteomics using DNA RNA protein co-extraction method,soil,PMID:30565880
+PXD007252,Caloric restriction and rat fecal microbiota,rat gut,PMID:30283130
+PXD007587,Sipros Ensemble Improves Database Searching and Filtering for Complex Metaproteomics,soil,PMID:29028897
+PXD007819,Pediatric IBD MLI metaproteomics,human gut,PMID:30030445
+PXD008017,More is not always better: Evaluation of 1D- and 2D-LC-MS2 methods for metaproteomics,mock community,PMID:30837968
+PXD008089,Metaproteomics and direct Protein-SIF of the deep-sea mussel Bathymodiolus childressi and its bacterial symbionts,mussel associated,PMID:31562384
+PXD008093,Proteomics for Newport Estuary Samples,water associated,PMID:29963029
+PXD008192,Multi-omic biogeography of the gastrointestinal microbiota of a pre-weaned lamb,sheep digestive tract,PMID:29258228
+PXD008273,Workflow for metaproteome characterization in bronchoalveolar lavage fluid (BALF),human respiratory tract,PMID:30382775
+PXD008738,Implementation of data-independent acquisition mass spectrometry in metaproteomics of gut microbiota,human gut,PMID:31755272
+PXD008780,"Functional Response of Polar Bacterial Communities under Variable Organic Inputs Revealed with Metaproteomic, 16S rRNA and Organic Compositional Analysis",marine,PMID:31492961
+PXD008870,Intestinal metaproteomics reveals host-microbiota interactions in subjects at risk for type 1 diabetes,human gut,PMID:30100563
+PXD009596,Human Pap test LC-MS/MS metaproteomics,human urogenital tract,PMID:30022083
+PXD009787,partial-nitritation anammox reactor,activated sludge,PMID:31462278
+PXD010060,Metaproteomic analysis of glacial ecosystem,ice associated,
+PXD010134,In vitro evaluation of MiPro cultuturing model,human gut,
+PXD010185,Metaproteomic analysis of glacial ecosystem,ice associated,
+PXD010274,An endo-acting galactanase with a type II signal peptide confers keystone status to arabinogalactan degrading bacteria of the human gut microbiota,human gut,
+PXD011166,Interspecies and intersubstrate comparison of the biomass-degrading capacity of five filamentous fungi,Thermothelomyces thermophila atcc 42464;Phanerochaete chrysosporium;Neurospora crassa;Hypocrea jecorina (strain qm6a) (trichoderma reesei),PMID:33219291
+PXD011230,"Metaproteomes of phototrophic mats from four soda lakes found in the Cariboo Plateau region of British Columbia, Canada",lake associated,
+PXD011357,Mucolytic activity of Akkermansia muciniphila enables Human Milk Oligosaccharides degradation,human milk,PMID:32868839
+PXD011360,Bacterial and host proteins along and across the porcine GIT,pig digestive tract,PMID:30634649
+PXD011457,Protein turnover rate along the gastrointestinal tract is coordinated by the spatial location and the microbiota,mouse digestive tract,PMID:31995731
+PXD011515,InfectERA: Challenges in clinical metaproteomics highlighted by the analysis of acute leukemia patients with gut colonization by multidrug-resistant Enterobacteriaceae,human gut,PMID:30626002
+PXD011616,Proteomics and direct Protein-SIF of the bacterial ectosymbionts of the ciliate Kentrophoros sp. H,sediment,
+PXD011642,Competition between microbes during anaerobic oxidation of methane: Bioreactor metaproteomics,sediment,PMID:32613749
+PXD011735,Isobaric Labeling Quantitative Metaproteomics for the Study of Gut Microbiome Response to Arsenic,mouse gut,PMID:30545218
+PXD011737,Multi-omics of the rhizosphere communities of Arabidopsis,plant associated,
+PXD011738,Multi-omics of the initial soil communites,soil,
+PXD011739,Proteomic SIP of the soil communities,soil,
+PXD011763,Nitric oxide-dependent anaerobic ammonium oxidation,Candidatus kuenenia stuttgartiensis,PMID:30886150
+PXD011792,In vivo proteome of Pseudomonas aeruginosa in airways of cystic fibrosis patients,human respiratory tract,PMID:31060355
+PXD011891,Multi-omics of the rhizosphere communities of Maize - Part 1,plant associated,
+PXD011892,Multi-omics of the rhizosphere communities of wheat - Part 2,plant associated,
+PXD012287,Stool proteome of EAE mice prior to physical symtoms but after immunization,mouse gut,PMID:31462662
+PXD012414,Diagnosing inflammation and infection in the urinary system via proteomics,human urogenital tract,PMID:25889401
+PXD012439,Host-symbiont interactions in the chemosynthetic Riftia model symbiosis,annelidae associated,PMID:31848270
+PXD012479,microbiome of methane hydrate sediments: Hydrate Ridge,sediment,
+PXD012503,Haemonchus contortus secretome LC-MS/MS,annelidae associated,PMID:31071474
+PXD012724,Rapid Assay of Individual Microbiome responses to drugs part1,mock community,PMID:32160905
+PXD012725,Rapid Assay of Individual Microbiome responses to drugs data part2,mock community,PMID:32160905
+PXD012775,On the Evolution and Physiology of Cable Bacteria,sediment,
+PXD013110,"Mediterranean grassland soil C-N compound turnover is mediated by genomically novel organisms, depth stratified, and rainfall dependent",soil,
+PXD013427,Lysine acetylation of microbiome,human gut,PMID:32807798
+PXD013600,An in vitro model maintaining taxon-specific functional activities of the gut microbiome,mock community,
+PXD014327,Metaproteomic insights into two phytoplankton,plant associated,PMID:31375486
+PXD015482,Lysine acetylation in human fecal microbiome,human gut,PMID:32807798
+PXD015572,Non-destructive Palaeoproteomics Of Mummified Human Skin,human skin,
+PXD015757,Engineered fibre enables targeted activation of butyrate-producing microbiota in the distal gut,human gut,PMID:33188211
+PXD015934,Effect of berberine analogues on functional profiles of human gut microbiomes,human gut,PMID:32372706
+PXD016427,Effecst of metformin on the human gut micorbiome,human gut,PMID:32369596
+PXD017059,Correlation of Prevotella abundancy with a particular carbohydrate-active CAZy enzyme profile in healthy gut microbiota,human gut,PMID:32709972
+PXD017451,15N labeling of mouse microbiota,mouse gut,PMID:33253538
+PXD017907,Metaproteomic responses of in vitro gut microbiomes to resistant starches,human gut,PMID:33335682
+PXD018006,Illuminating the key biological processes during the blooming period of a marine dinoflagellate by metaproteomics,marine,
+PXD018642,gNOMO: an pipeline to integrate meta-omics data analisys of non-model organisms,insect gut,PMID:33575609
+PXD020692,Washington state shellfish hatchery microbiome,mollusc associated,PMID:33902744
+PXD020786,Study of human gut microbiota from healthy adults,human gut,PMID:34290676
+PXD021575,A proteomics-based method for identifying antigens within immune complexes,human blood,PMID:33362259
+PXD022683,Metaproteomic analyses of microbial community from ancient permafrost,soil,PMID:34001281
+PXD022875,Lysine acylations of humangut microbiome,human gut,PMID:33885279
+PXD022995,Ross Sea Surface Water Metaproteomics,marine,PMID:34362734
+PXD024509,Metaproteomics reveals functional changes in the fecal microbiota of rats under time-restricted feeding,rat gut,
+PXD025659,Evaluation of different protein extraction protocols to study human gut microbiota,human gut,PMID:34290676
+PXD026192,Metaproteomic analysis of nine coral species with and without Stony Coral Tissue Loss Disease (SCTLD),coral associated,
+PXD027185,Pig metaproteome and mycotoxins,pig gut,PMID:34437454
