@@ -6,7 +6,7 @@ This repository contains source code for the backend of AMPSphere website.
 
 ```txt
 ├── config/*                # Define default configuration of the backend here.
-├── conftest.py             # This file only exists for unittest. 
+├── conftest.py             # This file only exists for unittest purpose. 
 ├── database/*              # AMPSphere database and sequence search databases. 
 ├── description.md          # Markdown content to be displayed on the Swagger API page.
 ├── __init__.py   
@@ -32,38 +32,81 @@ This repository contains source code for the backend of AMPSphere website.
     └── testing.py          # Main testing script.
 ```
 
-## Instructions
+## Deploy instructions
 
-- To install the requirements
+### Prepare necessary data
+Copy the latest AMPSphere data (should be generated based on Celio's script) to data/original_data. The folder will be look like.
+```text
+data/original_data
+├── AMPSphere_generation_v.2022-03
+│   ├── analysis
+│   ├── data
+│   ├── main.py
+│   ├── README.md
+│   ├── seqlogo
+│   └── utils
+├── metadata_analysis
+│   ├── data
+│   ├── main.py
+│   ├── outputs
+│   ├── README.md
+│   └── utils
+└── zenodo_repo
+    ├── AMPSphere_v.2022-03.faa.gz
+    ├── AMPSphere_v.2022-03.fna.xz
+    ├── AMPSphere_v.2022-03.general_geneinfo.tsv.gz
+    ├── AMPSphere_v.2022-03.quality_assessment.tsv.gz
+    ├── README.md
+    └── SPHERE_v.2022-03.levels_assessment.tsv.gz
+```
 
-```shell
+### Prepare the environment
+
+```bash
 pip install -r requirements.txt
 ```
 
-- To run the service in DEV mode
-```shell
-uvicorn main:app --reload
-```
+### Generate the backend data and test on dev server
 
-- To test the backend API
-```shell
+**Important**: Before executing the data generation step, make sure you have the right VERSION_CODE argument in the script (edit it to modify).
+
+```bash
+./generate_data.sh  
 python -m pytest tests/testing.py
 ```
 
-- To generate coverage report (html)
-```shell
-python -m pytest --cov-report html:tests/coverage_html --cov=src tests/testing.py
+This will cost hours to half a day depends on the available computing resources.
+
+If everything is Okay, please transfer all your data to continue.
+
+### Transfer all the data to the production server
+
+```bash
+tar zcvf data.tgz --exclude "data/original_data" data
+scp data.tgz ampsphere-asia:/AMPSphere/website/AMPSphereBackend/
 ```
 
-- To host the coverage report using http.server
-```shell
-python -m http.server --directory tests/coverage_html/ 8000
+This should cost 1-3 hours depends on the connection quality.
+
+### Uncompress the data and do unittest before production
+
+```bash
+tar zxvf data.tgz
+python -m pytest tests/testing.py
 ```
 
-- To browse the coverage report hosted on the HuaWeiCloud server
+If everything is Okay, please run the backend in production mode.
 
-See [http://119.3.63.164:8000/](http://119.3.63.164:8000/)
+### Run the backend service in production mode
+
+```bash
+sudo env PATH=$PATH gunicorn src.main:app --workers 4  --worker-class uvicorn.workers.UvicornWorker -b 0.0.0.0:1010 --access-logfile '-' -t 120
+
+sudo systemctl restart nginx
+```
+
+Go to its API page and test it manually if necessary: [https://ampsphere-api.big-data-biology.org/](https://ampsphere-api.big-data-biology.org/)
 
 ## Contact
 
-- Hui Chong (huichong.me@gmail.com), Big Data Biology Lab.
+- Hui Chong (huichong.me@gmail.com, https://huichong.me), Big Data Biology Lab.
