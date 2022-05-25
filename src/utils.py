@@ -258,19 +258,24 @@ def compute_distribution_from_query_data(query_data):
         names = {'latitude': 'lat', 'longitude': 'lon', 'AMP': 'size'}
         data['geo'].rename(columns=names, inplace=True)
         data['geo'] = data['geo'].to_dict(orient='list')
-        # FIXME hierarchical structure generation.
         data['habitat'] = data['habitat'][data['habitat'].general_envo_name != '']
         if data['habitat'].shape[0] > 0:
-            data['habitat'] = get_sunburst_data(data['habitat'][['general_envo_name', 'size']], sep=':')
+            d = data['habitat'][['general_envo_name', 'size']].set_index('general_envo_name')['size'].to_dict()
+            d_ordered = OrderedDict(sorted(d.items(), key=lambda x: x[1], reverse=True))
+            print(d_ordered)
+            data['habitat'] = dict(
+                labels=list(d_ordered.keys()),
+                parents=list(),
+                values=list(d_ordered.values()))
         else:
             data['habitat'] = dict(zip(['labels', 'parents', 'values'], [[], [], []]))
 
         def simplify(data):
             data = data.sort_values(by='size', ascending=False).set_index('microbial_source_s')['size']
             data = OrderedDict(zip(data.index.tolist(), data.tolist()))
-            print(data)
+            # print(data)
             others_count = 0
-            result = OrderedDict()
+            result = dict()
             for key, value in data.items():
                 if key == '':
                     others_count += value
@@ -279,14 +284,14 @@ def compute_distribution_from_query_data(query_data):
                 else:
                     others_count += value
             result['others *'] = others_count
-            return result
+            return OrderedDict(sorted(result.items(), key=lambda x: x[1], reverse=True))
 
         data['microbial_source'] = simplify(data['microbial_source'])
         data['microbial_source'] = dict(
             labels=list(data['microbial_source'].keys()),
             values=list(data['microbial_source'].values())
         )
-        print(data['microbial_source'])
+        # print(data['microbial_source'])
         return data
     else:
         empty_sunburst = dict(
