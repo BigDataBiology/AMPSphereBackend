@@ -1,7 +1,6 @@
 import math
 import pathlib
 import types
-from pprint import pprint
 
 import pandas as pd
 from sqlalchemy.orm import Session, Query
@@ -87,12 +86,7 @@ def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
     accessions = query.offset(page * page_size).limit(page_size).all()
     # print(accessions)
     data = [get_amp(accession, db) for accession, in accessions]
-    info = get_query_page_info(q=query, page=page, page_size=page_size)
-    paged_amps = types.SimpleNamespace()
-    paged_amps.info = info
-    paged_amps.data = data
-    # print(data[0].__dict__['metadata'].data[0].__dict__)
-    return paged_amps
+    return mk_result(data, query.count(), page=page, page_size=page_size)
 
 
 def get_amp(accession: str, db: Session):
@@ -112,11 +106,17 @@ def get_amp_metadata(accession: str, db: Session, page: int, page_size: int):
     data = query.offset(page * page_size).limit(page_size).all()
     if len(data) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    metadata_info = get_query_page_info(q=query, page_size=page_size, page=page)
-    metadata = types.SimpleNamespace()
-    metadata.info = metadata_info
-    metadata.data = data
-    return metadata
+    return mk_result(data, total_items=query.count(), page_size=page_size, page=page)
+
+def mk_result(data, total_items, page_size, page):
+    return types.SimpleNamespace(
+            data=data,
+            info={
+                'currentPage': page,
+                'pageSize': page_size,
+                'totalPage': math.ceil(total_items / page_size),
+                'totalItem': total_items,
+            })
 
 
 def get_amp_features(accession: str, db: Session):
@@ -142,11 +142,7 @@ def get_families(db: Session, page: int, page_size: int, request: Request, **kwa
     # if len(accessions) == 0:
     #     raise HTTPException(status_code=400, detail='invalid filter applied.')
     data = [get_family(accession, db=db, request=request) for accession, in accessions]
-    info = get_query_page_info(q=query, page=page, page_size=page_size)
-    paged_families = types.SimpleNamespace()
-    paged_families.info = info
-    paged_families.data = data
-    return paged_families
+    return mk_result(data, query.counts(), page=page, page_size=page_size)
 
 
 def get_family(accession: str, db: Session, request: Request):
@@ -249,11 +245,7 @@ def search_by_text(db: Session, text: str, page: int, page_size: int):
 
     accessions = query.offset(page * page_size).limit(page_size).all()
     amps_data = [get_amp(accession, db) for accession, in accessions]
-    page_info = get_query_page_info(q=query, page=page, page_size=page_size)
-    paged_searchresult = types.SimpleNamespace()
-    paged_searchresult.info = page_info
-    paged_searchresult.data = amps_data
-    return paged_searchresult
+    return mk_result(amps_data, total_items=query.count(), page=page, page_size=page_size)
 
 
 def get_statistics(db: Session):
@@ -272,24 +264,6 @@ def get_statistics(db: Session):
         num_metagenomes=db.query(func.count(distinct(models.GMSCMetadata.sample))).filter(
             models.GMSCMetadata.is_metagenomic == "True").scalar(),
     )
-
-
-def get_query_page_info(q: Query, page_size: int, page: int):
-    total_items = q.count()
-    total_page = math.ceil(total_items / page_size)
-    current_page = page
-    # info = types.SimpleNamespace()
-    # info.currentPage = current_page
-    # info.pageSize = page_size
-    # info.totalPage = total_page
-    # info.totalItem = total_items
-    info = dict(
-        currentPage=current_page,
-        pageSize=page_size,
-        totalPage=total_page,
-        totalItem=total_items
-    )
-    return info
 
 
 def get_all_options(db: Session):
@@ -384,7 +358,6 @@ def mmseqs_search(seq: str, db):
                                           'domain_end_position_target']].apply(format_alignment0, axis=1)
             df['family'] = df['target_identifier'].apply(lambda x: get_family_by_amp(x, db))
         records = df.to_dict(orient='records')
-        # pprint(records)
         return records
 
 
