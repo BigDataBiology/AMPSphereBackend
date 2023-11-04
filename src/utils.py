@@ -101,7 +101,12 @@ def get_amp_features(seq, include_graph_points=True):
 
 def get_secondary_structure(seq):
     analyzed_seq = ProteinAnalysis(str(seq))
-    return dict(zip(['helix', 'turn', 'sheet'], analyzed_seq.secondary_structure_fraction()))
+    h,t,s = analyzed_seq.secondary_structure_fraction()
+    return {
+            'helix': h,
+            'turn': t,
+            'sheet': s,
+            }
 
 
 def get_graph_points(seq):
