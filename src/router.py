@@ -58,10 +58,10 @@ def amps(db: Session = Depends(get_db),
     - :param pI_interval: Isoelectric point interval (format: `min_pI,max_pI`, e.g., `4,12`).
     - :param charge_interval: Charge at pH 7 interval (format: `min_charge,max_charge`, e.g., `-57,44`).
     """
-    return crud.get_amps(db, page=page, page_size=page_size, 
+    return crud.get_amps(db, page=page, page_size=page_size,
                          exp_evidence=exp_evidence, antifam=antifam, RNAcode=RNAcode, coordinates=coordinates,
                          sample_genome=sample_genome,
-                         family=family, habitat=habitat, microbial_source=microbial_source, 
+                         family=family, habitat=habitat, microbial_source=microbial_source,
                          pep_length_interval=pep_length_interval, mw_interval=mw_interval,
                          pI_interval=pI_interval, charge_interval=charge_interval)
 
@@ -216,7 +216,7 @@ def get_all_options(db: Session = Depends(get_db)):
     return crud.get_all_options(db)
 
 
-@default_router.get(path='/in_db/{entity_type}/{accession}', 
+@default_router.get(path='/in_db/{entity_type}/{accession}',
                     summary=default_route_summary)
 def in_db(db: Session = Depends(get_db), entity_type: str = 'family', accession: str = 'SPHERE-III.000_428'):
     return crud.entity_in_db(db=db, entity_type=entity_type, accession=accession)
@@ -236,7 +236,7 @@ def get_downloads():
                     summary=default_route_summary)
 def download_file(file: str):
     def iterfile():
-        with open(utils.download(file), mode="r" if not file.endswith('sqlite') else 'rb') as f: 
+        with open(utils.download(file), mode="r" if not file.endswith('sqlite') else 'rb') as f:
             yield from f
     media_types = dict(
         sqlite="application/vnd.sqlite3",
