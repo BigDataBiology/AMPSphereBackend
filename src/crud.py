@@ -32,17 +32,17 @@ def filter_by_criteria(query, db, **criteria):
     """
     cols_mapper = dict(   # Mapping from query filter names to table column names
         GMSCMetadata=dict(
-            habitat='general_envo_name', 
-            microbial_source='microbial_source', 
+            habitat='general_envo_name',
+            microbial_source='microbial_source',
             sample_genome='sample'),
         AMP=dict(
             antifam='Antifam',
             RNAcode='RNAcode',
             coordinates='coordinates',
-            pep_length_interval='length', 
+            pep_length_interval='length',
             mw_interval='molecular_weight',
             pI_interval='isoelectric_point',
-            charge_interval='charge', 
+            charge_interval='charge',
             family='family'))
 
     criteria = {key: value for key, value in criteria.items() if value}
@@ -70,7 +70,7 @@ def filter_by_criteria(query, db, **criteria):
 
 
 def filter_by_gtdb_taxonomy(query, taxonomy, db, rank=None):
-    if not rank: 
+    if not rank:
         rank_ = db.query(models.GTDBTaxonRank.microbial_source_rank).\
             filter(models.GTDBTaxonRank.gtdb_taxon == taxonomy).first()
         if rank_:
