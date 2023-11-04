@@ -406,8 +406,6 @@ def hmmscan_search(seq: str):
 
     if not tmp_dir.exists():
         tmp_dir.mkdir(parents=True)
-    # with open(input_seq_file, 'w') as f:
-    #     f.write(f'>submitted_sequence\n{seq}')
     with open(input_seq_file, 'w') as f:
         f.write(seq)  # already in fasta format
 
@@ -438,7 +436,5 @@ def hmmscan_search(seq: str):
         except pd.errors.EmptyDataError:
             df = pd.DataFrame(columns=columns)
         df.columns = columns
-        # print(df)
         records = df.to_dict(orient='records')
-        # pprint(records)
         return records
