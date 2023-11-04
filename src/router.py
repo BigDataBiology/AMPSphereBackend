@@ -248,16 +248,6 @@ def download_file(file: str):
     return StreamingResponse(iterfile(), media_type=media_types[file.split('.')[-1]])
 
 
-# @default_router.get(path="/search/text",
-#                     response_model=schemas.PagedAMPs,
-#                     response_class=JSONResponse,
-#                     summary=default_route_summary)
-# def text_search(db: Session = Depends(get_db),
-#                 query: str = 'AMP10.000_000',
-#                 page: int = 0,
-#                 page_size: int = 20):
-#     return crud.search_by_text(db, text=query, page=page, page_size=page_size)
-
 
 @default_router.get(path="/search/mmseqs",
                     response_model=List[schemas.mmSeqsSearchResult],

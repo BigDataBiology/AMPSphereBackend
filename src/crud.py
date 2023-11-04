@@ -292,41 +292,6 @@ def get_query_page_info(q: Query, page_size: int, page: int):
     return info
 
 
-# Deprecated.
-# def get_filtered_options(db: Session, **kwargs):
-#     habitat, = zip(*filter_by_criteria(
-#         query=db.query(models.GMSCMetadata.general_envo_name), query_table="Metadata", **kwargs).distinct())
-#     microbial_source, = zip(*filter_by_criteria(
-#         query=db.query(models.GMSCMetadata.microbial_source), query_table="Metadata", **kwargs).distinct())
-#     quality, = zip(*filter_by_criteria(
-#         query=db.query(models.Quality.badge), query_table="Quality", **kwargs).distinct())
-#     peplen_min, peplen_max, mw_min, mw_max, pI_min, pI_max, charge_min, charge_max = \
-#         filter_by_criteria(
-#             query=db.query(
-#                 func.min(models.AMP.length),
-#                 func.max(models.AMP.length),
-#                 func.min(models.AMP.molecular_weight),
-#                 func.max(models.AMP.molecular_weight),
-#                 func.min(models.AMP.isoelectric_point),
-#                 func.max(models.AMP.isoelectric_point),
-#                 func.min(models.AMP.charge),
-#                 func.max(models.AMP.charge)),
-#             query_table="AMP",
-#             **kwargs).first()
-#     print('Query finished.')
-#     round_floor = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_FLOOR)
-#     round_ceiling = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_CEILING)
-#     return dict(
-#         quality=quality,
-#         habitat=habitat,
-#         microbial_source=microbial_source,   # FIXME query of distinct microbial sources of human gut is too slow.
-#         pep_length=dict(min=int(peplen_min), max=int(peplen_max) + 1),
-#         molecular_weight=dict(min=round_floor(mw_min), max=round_ceiling(mw_max)),
-#         isoelectric_point=dict(min=round_floor(pI_min), max=round_ceiling(pI_max)),
-#         charge_at_pH_7=dict(min=round_floor(charge_min), max=round_ceiling(charge_max))
-#     )
-
-
 def get_all_options(db: Session):
     habitat, = zip(*db.query(models.GMSCMetadata.general_envo_name).distinct())
     microbial_source, = zip(*db.query(models.GTDBTaxonRank.gtdb_taxon).distinct())
