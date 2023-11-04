@@ -12,7 +12,6 @@ import pandas as pd
 from Bio import SearchIO, AlignIO
 from Bio.Align import AlignInfo
 from Bio.pairwise2 import format_alignment
-import livingTree as lt
 from collections import OrderedDict
 
 
@@ -201,45 +200,6 @@ def df_to_formatted_json(df, sep="."):
         result.append(parsed_row)
     return result
 
-
-def get_sunburst_data(paths_values, sep: str = None) -> dict:
-    """
-    :param paths_values:
-    :param sep: each path is a list if sep = None.
-    :return:
-    """
-    # print(paths_values)
-    paths_values.columns = ['path', 'value']
-    paths = paths_values['path']
-    if sep:
-        paths = paths.str.strip(sep).str.split(sep)
-    else:
-        sep = ';'
-
-    # paths to set up the prefix tree
-    # pprint('before prefix')
-    # pprint(paths.tolist())
-    paths = paths.apply(lambda x: ['Unknown' if i == '' else i for i in x])
-    paths = paths.apply(lambda x: [sep.join(x[0:i]) for i in range(1, len(x) + 1)])
-    # pprint('after prefix')
-    # pprint(paths.tolist())
-    identifiers = paths.apply(lambda x: x[-1])
-    tree = lt.SuperTree()
-    tree.create_node(identifier='')
-    tree.from_paths(paths)
-    tree.init_nodes_data(0)
-    values = dict(zip(identifiers, paths_values['value'].tolist()))
-    # print(values)
-    tree.fill_with(values)
-    tree.update_values()
-
-    # print(vars(tree.get_node('a')))
-    def rm_prefix(identifier):
-        return identifier.split(sep)[-1]
-
-    id_parent_value = list(zip(*[(rm_prefix(nid), rm_prefix(tree.parent(nid).identifier), tree.get_node(nid).data)
-                                 for nid in tree.expand_tree(mode=tree.WIDTH) if nid != '']))
-    return dict(zip(['labels', 'parents', 'values'], id_parent_value))
 
 
 def compute_distribution_from_query_data(query_data):
