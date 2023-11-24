@@ -170,10 +170,6 @@ def cal_consensus_seq(accession):
         return ''
 
 
-def obj_to_dict(obj):
-    return {key: value for key, value in obj.__dict__.items() if key != '_sa_instance'}
-
-
 def round_3(num: float):
     return round(num, 3)
 
