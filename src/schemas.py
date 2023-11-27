@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict
 from xmlrpc.client import Boolean
-from pydantic import BaseModel, validator
+from pydantic import field_validator, ConfigDict, BaseModel
 
 
 # Define JSON objects to be returned to frontend here.
@@ -11,9 +11,7 @@ class LinePlotData(BaseModel):
     x: List[str]
     y: List[float]
     c: List[str]
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FeatureGraphPoints(BaseModel):
@@ -27,9 +25,7 @@ class BarPlotData(BaseModel):
     type: str = 'bar plot'
     labels: List[str]
     values: List[float]
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BubbleMapData(BaseModel):
@@ -38,18 +34,14 @@ class BubbleMapData(BaseModel):
     lon: List[float]
     size: List[float]
     colors: List[str] = ['']
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Distributions(BaseModel):
     geo: BubbleMapData
     habitat: BarPlotData
-    microbial_source: Optional[BarPlotData]
-
-    class Config:
-        orm_mode = True
+    microbial_source: Optional[BarPlotData] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AMPFeatures(BaseModel):
@@ -62,10 +54,8 @@ class AMPFeatures(BaseModel):
     Isoelectric_point: float
     Charge_at_pH_7: float
     Secondary_structure: Dict[str, float]
-    graph_points: Optional[FeatureGraphPoints]
-
-    class Config:
-        orm_mode = True
+    graph_points: Optional[FeatureGraphPoints] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Object for AMP_card page ------------------------------------------------
@@ -74,62 +64,69 @@ class Metadata(BaseModel):
     GMSC_accession: str
     gene_sequence: str
     sample: str
-    specI: Optional[str]
+    specI: Optional[str] = None
     is_metagenomic: Boolean
     geographic_location: str
-    latitude: Optional[float]
-    longitude: Optional[float]
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     general_envo_name: str
     environment_material: str
-    microbial_source_d: Optional[str]
-    microbial_source_p: Optional[str]
-    microbial_source_c: Optional[str]
-    microbial_source_o: Optional[str]
-    microbial_source_f: Optional[str]
-    microbial_source_g: Optional[str]
-    microbial_source_s: Optional[str]
+    microbial_source_d: Optional[str] = None
+    microbial_source_p: Optional[str] = None
+    microbial_source_c: Optional[str] = None
+    microbial_source_o: Optional[str] = None
+    microbial_source_f: Optional[str] = None
+    microbial_source_g: Optional[str] = None
+    microbial_source_s: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
 
-
-    class Config:
-        orm_mode = True
-
-    @validator('specI', pre=True)
+    @field_validator('specI', mode="before")
+    @classmethod
     def origin_tax_id_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('latitude', pre=True)
+    @field_validator('latitude', mode="before")
+    @classmethod
     def latitude_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('longitude', pre=True)
+    @field_validator('longitude', mode="before")
+    @classmethod
     def longitude_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('microbial_source_d', pre=True)
+    @field_validator('microbial_source_d', mode="before")
+    @classmethod
     def origin_name_d_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('microbial_source_p', pre=True)
+    @field_validator('microbial_source_p', mode="before")
+    @classmethod
     def origin_name_p_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('microbial_source_c', pre=True)
+    @field_validator('microbial_source_c', mode="before")
+    @classmethod
     def origin_name_c_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('microbial_source_o', pre=True)
+    @field_validator('microbial_source_o', mode="before")
+    @classmethod
     def origin_name_o_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('microbial_source_f', pre=True)
+    @field_validator('microbial_source_f', mode="before")
+    @classmethod
     def origin_name_f_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('microbial_source_g', pre=True)
+    @field_validator('microbial_source_g', mode="before")
+    @classmethod
     def origin_name_g_blank_string(value, field):
         return None if value == "" else value
 
-    @validator('microbial_source_s', pre=True)
+    @field_validator('microbial_source_s', mode="before")
+    @classmethod
     def origin_name_s_blank_string(value, field):
         return None if value == "" else value
 
@@ -139,17 +136,13 @@ class PageInfo(BaseModel):
     pageSize: int
     totalPage: int
     totalItem: int
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PagedMetadata(BaseModel):
     info: PageInfo
     data: List[Metadata]
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AMPQuality(BaseModel):
@@ -159,9 +152,7 @@ class AMPQuality(BaseModel):
     coordinates: str
     score: float
     badge: str
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AMP(BaseModel):
@@ -181,19 +172,15 @@ class AMP(BaseModel):
     metatranscriptomes: str
     coordinates: str
     secondary_structure: Dict[str, float]
-    feature_graph_points: Optional[FeatureGraphPoints]
+    feature_graph_points: Optional[FeatureGraphPoints] = None
     metadata: PagedMetadata
-    
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PagedAMPs(BaseModel):
     info: PageInfo
     data: List[AMP]
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Object for Family page ------------------------------------------------
@@ -205,9 +192,7 @@ class FamilyDownloads(BaseModel):
     # sequence_logo: str
     tree_figure: str
     tree_nwk: str
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # not used for now.
@@ -221,9 +206,7 @@ class FamilyFeatures(BaseModel):
     Isoelectric_point: Dict[str, float]
     Charge_at_pH_7: Dict[str, float]
     Secondary_structure: Dict[str, Dict[str, float]]
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Family(BaseModel):
@@ -234,17 +217,13 @@ class Family(BaseModel):
     associated_amps: List[str]
     feature_statistics: Dict[str, AMPFeatures]
     distributions: Distributions
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PagedFamilies(BaseModel):
     info: PageInfo
     data: List[Family]
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Object for Download page ------------------------------------------------
@@ -270,12 +249,9 @@ class mmSeqsSearchResult(BaseModel):
     bit_score: int
     seq_query: str
     seq_target: str
-    alignment_strings: Optional[List[str]]
-    family: Optional[str]
-
-
-    class Config:
-        orm_mode = True
+    alignment_strings: Optional[List[str]] = None
+    family: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
 
 
 class HMMERSearchResult(BaseModel):
@@ -300,9 +276,7 @@ class HMMERSearchResult(BaseModel):
     to_env: int
     to_hmm: int
     description_of_target: str
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Statistics(BaseModel):
@@ -312,9 +286,7 @@ class Statistics(BaseModel):
     num_habitats: int
     num_genomes: int
     num_metagenomes: int
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Filters(BaseModel):
@@ -322,6 +294,4 @@ class Filters(BaseModel):
     habitat: List[str]
     sample_genome: List[str]
     microbial_source: List[str]
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
