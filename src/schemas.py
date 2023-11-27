@@ -80,55 +80,21 @@ class Metadata(BaseModel):
     microbial_source_s: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
-    @field_validator('specI', mode="before")
+    @field_validator(
+            'specI',
+            'latitude',
+            'longitude',
+            'microbial_source_d',
+            'microbial_source_p',
+            'microbial_source_c',
+            'microbial_source_o',
+            'microbial_source_f',
+            'microbial_source_g',
+            'microbial_source_s',
+            mode="before")
     @classmethod
-    def origin_tax_id_blank_string(value, field):
-        return None if value == "" else value
-
-    @field_validator('latitude', mode="before")
-    @classmethod
-    def latitude_blank_string(value, field):
-        return None if value == "" else value
-
-    @field_validator('longitude', mode="before")
-    @classmethod
-    def longitude_blank_string(value, field):
-        return None if value == "" else value
-
-    @field_validator('microbial_source_d', mode="before")
-    @classmethod
-    def origin_name_d_blank_string(value, field):
-        return None if value == "" else value
-
-    @field_validator('microbial_source_p', mode="before")
-    @classmethod
-    def origin_name_p_blank_string(value, field):
-        return None if value == "" else value
-
-    @field_validator('microbial_source_c', mode="before")
-    @classmethod
-    def origin_name_c_blank_string(value, field):
-        return None if value == "" else value
-
-    @field_validator('microbial_source_o', mode="before")
-    @classmethod
-    def origin_name_o_blank_string(value, field):
-        return None if value == "" else value
-
-    @field_validator('microbial_source_f', mode="before")
-    @classmethod
-    def origin_name_f_blank_string(value, field):
-        return None if value == "" else value
-
-    @field_validator('microbial_source_g', mode="before")
-    @classmethod
-    def origin_name_g_blank_string(value, field):
-        return None if value == "" else value
-
-    @field_validator('microbial_source_s', mode="before")
-    @classmethod
-    def origin_name_s_blank_string(value, field):
-        return None if value == "" else value
+    def empty_string_to_null(cls, val):
+        return None if val == "" else val
 
 
 class PageInfo(BaseModel):
