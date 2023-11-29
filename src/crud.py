@@ -79,22 +79,26 @@ def filter_by_gtdb_taxonomy(query, taxonomy, db, rank=None):
     return query.filter(getattr(models.GMSCMetadata, rank) == taxonomy)
 
 
+
 def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
-    query = db.query(distinct(models.AMP.accession))
-    # print(query)
+    query = db.query(models.AMP)
     query = filter_by_criteria(query=query, db=db, **kwargs)
-    accessions = query.offset(page * page_size).limit(page_size).all()
-    # print(accessions)
-    data = [get_amp(accession, db) for accession, in accessions]
+    data = query.offset(page * page_size).limit(page_size).all()
+    for amp_obj in data:
+        _decorate_amp_obj(amp_obj, db)
     return mk_result(data, query.count(), page=page, page_size=page_size)
 
 
 def get_amp(accession: str, db: Session):
-    amp_obj = db.query(models.AMP).filter(models.AMP.accession == accession).first()
+    amp_obj = db.query(models.AMP).filter(models.AMP.accession == accession).one()
     if not amp_obj:
         raise HTTPException(status_code=400, detail='invalid accession received.')
+    return _decorate_amp_obj(amp_obj, db)
+
+
+def _decorate_amp_obj(amp_obj, db : Session):
     feature_graph_points = utils.get_graph_points(amp_obj.sequence)
-    metadata = get_amp_metadata(accession, db, page=0, page_size=5)
+    metadata = get_amp_metadata(amp_obj.accession, db, page=0, page_size=5)
     setattr(amp_obj, "feature_graph_points", feature_graph_points)
     setattr(amp_obj, "secondary_structure", utils.get_secondary_structure(amp_obj.sequence))
     setattr(amp_obj, "metadata", metadata)
