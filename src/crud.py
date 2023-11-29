@@ -45,8 +45,6 @@ def filter_by_criteria(query, db, **criteria):
             family='family'))
 
     criteria = {key: value for key, value in criteria.items() if value}
-    print(criteria)
-    print("Filters applied:", criteria)
 
     for filter, value in criteria.items():
         if filter in {'habitat', 'sample_genome'}:
@@ -54,10 +52,8 @@ def filter_by_criteria(query, db, **criteria):
         elif filter == 'microbial_source':
             query = filter_by_gtdb_taxonomy(query, taxonomy=value, db=db)
         elif filter == 'exp_evidence' and value == 'Passed':
-            print('filtering by exp_evidence == {}'.format(value))
             query = query.filter(or_(models.AMP.metaproteomes == 'Passed', models.AMP.metatranscriptomes == 'Passed'))
         elif filter == 'exp_evidence' and value == 'Failed':
-            print('filtering by exp_evidence == {}'.format(value))
             query = query.filter(and_(models.AMP.metaproteomes == 'Failed', models.AMP.metatranscriptomes == 'Failed'))
         elif filter in {'family', 'antifam', 'RNAcode', 'coordinates'}:
             query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == value)
@@ -159,7 +155,6 @@ def get_family(accession: str, db: Session, request: Request):
         associated_amps=get_associated_amps(accession, db),
         downloads=get_fam_downloads(accession, db=db, request=request)
     )
-    print(family)
     return family
 
 
