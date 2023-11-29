@@ -80,7 +80,7 @@ def filter_by_gtdb_taxonomy(query, taxonomy, db, rank=None):
 
 
 def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
-    query = db.query(distinct(models.AMP.accession)).join(models.GMSCMetadata)
+    query = db.query(distinct(models.AMP.accession))
     # print(query)
     query = filter_by_criteria(query=query, db=db, **kwargs)
     accessions = query.offset(page * page_size).limit(page_size).all()
