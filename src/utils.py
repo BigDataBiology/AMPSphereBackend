@@ -84,7 +84,7 @@ def get_amp_features(seq, include_graph_points=True):
     """
     analyzed_seq = ProteinAnalysis(str(seq))
 
-    out = {'Secondary_structure': dict(zip(['helix', 'turn', 'sheet'], analyzed_seq.secondary_structure_fraction())),
+    return {'Secondary_structure': dict(zip(['helix', 'turn', 'sheet'], analyzed_seq.secondary_structure_fraction())),
            'Length': analyzed_seq.length,
            'Molar_extinction': dict(zip(['cysteines_reduced', 'cystines_residues'],
                                         analyzed_seq.molar_extinction_coefficient())),
@@ -95,7 +95,6 @@ def get_amp_features(seq, include_graph_points=True):
            'Instability_index': round_3(analyzed_seq.instability_index()),
            'Isoelectric_point': round_3(analyzed_seq.isoelectric_point()),
            'graph_points': get_graph_points(seq) if include_graph_points else None}
-    return out
 
 
 def get_secondary_structure(seq):
