@@ -264,12 +264,18 @@ def get_statistics(db: Session):
     )
 
 def _all_used_taxa(db: Session):
+    from collections import Counter
     used = set()
     for rank in 'pcofgs':
         used.update(db.execute(select(distinct(getattr(models.GMSCMetadata, f'microbial_source_{rank}')))).scalars().all())
     used.remove('')
+    # If a genus is present, but all its elements are from the same species, remove it
+    genus_species = db.query(models.GMSCMetadata.microbial_source_g, models.GMSCMetadata.microbial_source_s).distinct().all()
+    cs = Counter(g for g, _ in genus_species)
+    used -= set([k for k,v in cs.items() if v == 1])
     used = tuple(sorted(used))
     return used
+
 
 _all_options = None
 def get_all_options(db: Session):
