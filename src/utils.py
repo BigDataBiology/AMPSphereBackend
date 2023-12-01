@@ -148,17 +148,6 @@ def get_downloads():
             'GMSCMetadata.tsv']
 
 
-def download(file_type: str):
-    mapping = {
-        'AMPSphere_latest.sqlite': './data/ampsphere_main_db/AMPSphere_latest.sqlite',
-        'AMPSphere_latest.mmseqsdb': './data/mmseqs_db/AMPSphere_latest.mmseqsdb',
-        'AMPSphere_latest.hmm': './data/hmmprofile_db/AMPSphere_latest.hmm',
-        'AMP.tsv': 'data/tables/AMP.tsv',
-        'GMSCMetadata.tsv': 'data/tables/GMSCMetadata.tsv',
-    }
-    return mapping[file_type]
-
-
 def cal_consensus_seq(accession):
     file = pathlib.Path(cfg.get('pre_computed_data')).joinpath('families/aln/{}.aln'.format(accession))
     if file.exists():

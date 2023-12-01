@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from src.database import SessionLocal
 from typing import List, Dict
 from fastapi import Depends
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse
 from src import schemas
 from src import utils
 from src import crud
@@ -232,21 +232,19 @@ def get_downloads():
 
 
 @default_router.get(path="/downloads/{file}",
-                    response_class=StreamingResponse,
+                    response_class=FileResponse,
                     summary=default_route_summary)
 def download_file(file: str):
-    def iterfile():
-        with open(utils.download(file), mode="r" if not file.endswith('sqlite') else 'rb') as f:
-            yield from f
-    media_types = dict(
-        sqlite="application/vnd.sqlite3",
-        tsv="text/tab-separated-values",
-        mmseqsdb="application/octet-stream",
-        hmm="application/octet-stream",
+    fpath = {
+        'AMPSphere_latest.sqlite':      'ampsphere_main_db/AMPSphere_latest.sqlite',
+        'AMPSphere_latest.mmseqsdb':    'mmseqs_db/AMPSphere_latest.mmseqsdb',
+        'AMPSphere_latest.hmm':         'hmmprofile_db/AMPSphere_latest.hmm',
 
-    )
-    return StreamingResponse(iterfile(), media_type=media_types[file.split('.')[-1]])
-
+        'AMP.tsv':                      'tables/AMP.tsv',
+        'GMSCMetadata.tsv':             'tables/GMSCMetadata.tsv',
+    }[file]
+    fpath = f'data/{fpath}'
+    return FileResponse(fpath)
 
 
 @default_router.get(path="/search/mmseqs",

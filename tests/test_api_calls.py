@@ -13,3 +13,9 @@ def test_basic_lookup():
 def test_amps():
     r = client.get("v1/amps?page=0&page_size=5")
     assert json.load(open('tests/expected/amps5.json')) == r.json()
+
+    
+def test_downloads():
+    r = client.get("v1/downloads/GMSCMetadata.tsv")
+    assert r.headers['content-type'].startswith('text/tab-separated-values')
+    assert 'last-modified' in r.headers
