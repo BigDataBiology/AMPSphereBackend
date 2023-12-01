@@ -5,7 +5,7 @@ import types
 import pandas as pd
 from sqlalchemy.orm import Session, Query
 from sqlalchemy import or_, and_, not_
-from sqlalchemy import distinct, func, true, false
+from sqlalchemy import distinct, func, select
 from sqlalchemy.sql.expression import func as sql_func
 from fastapi import HTTPException, Request
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
@@ -263,13 +263,19 @@ def get_statistics(db: Session):
             models.GMSCMetadata.is_metagenomic == "True").scalar(),
     )
 
+def _all_used_taxa(db: Session):
+    used = set()
+    for rank in 'pcofgs':
+        used.update(db.execute(select(distinct(getattr(models.GMSCMetadata, f'microbial_source_{rank}')))).scalars().all())
+    used.remove('')
+    used = tuple(sorted(used))
+    return used
 
 _all_options = None
 def get_all_options(db: Session):
     global _all_options
     if _all_options is None:
         habitat, = zip(*db.query(models.GMSCMetadata.general_envo_name).distinct())
-        microbial_source = tuple(sorted(database.gtdb_taxon_to_rank.keys()))
         quality, = zip(*db.query(models.AMP.RNAcode).distinct())
         peplen_min, peplen_max, mw_min, mw_max, \
         pI_min, pI_max, charge_min, charge_max = db.query(
@@ -287,7 +293,7 @@ def get_all_options(db: Session):
         _all_options = dict(
             quality=quality,
             habitat=habitat,
-            microbial_source=microbial_source,
+            microbial_source=_all_used_taxa(db),
             pep_length=dict(min=int(peplen_min), max=int(peplen_max) + 1),
             molecular_weight=dict(min=round_floor(mw_min), max=round_ceiling(mw_max)),
             isoelectric_point=dict(min=round_floor(pI_min), max=round_ceiling(pI_max)),
