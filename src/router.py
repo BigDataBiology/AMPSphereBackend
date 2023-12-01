@@ -222,28 +222,29 @@ def in_db(db: Session = Depends(get_db), entity_type: str = 'family', accession:
     return crud.entity_in_db(db=db, entity_type=entity_type, accession=accession)
 
 
-@default_router.get(path="/downloads",
-                    response_model=List[str],
-                    response_class=JSONResponse,
-                    summary=default_route_summary)
-def get_downloads():
-    downloads = utils.get_downloads()
-    return downloads
 
-
-@default_router.get(path="/downloads/{file}",
-                    response_class=FileResponse,
-                    summary=default_route_summary)
-def download_file(file: str):
-    fpath = {
+_DOWNLOAD_FILE_PATH = {
         'AMPSphere_latest.sqlite':      'ampsphere_main_db/AMPSphere_latest.sqlite',
         'AMPSphere_latest.mmseqsdb':    'mmseqs_db/AMPSphere_latest.mmseqsdb',
         'AMPSphere_latest.hmm':         'hmmprofile_db/AMPSphere_latest.hmm',
 
         'AMP.tsv':                      'tables/AMP.tsv',
         'GMSCMetadata.tsv':             'tables/GMSCMetadata.tsv',
-    }[file]
-    fpath = f'data/{fpath}'
+}
+
+@default_router.get(path="/downloads",
+                    response_model=List[str],
+                    response_class=JSONResponse,
+                    summary=default_route_summary)
+def get_downloads():
+    return list(sorted(_DOWNLOAD_FILE_PATH.keys()))
+
+
+@default_router.get(path="/downloads/{file}",
+                    response_class=FileResponse,
+                    summary=default_route_summary)
+def download_file(file: str):
+    fpath = f'data/{_DOWNLOAD_FILE_PATH[file]}'
     return FileResponse(fpath)
 
 

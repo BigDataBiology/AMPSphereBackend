@@ -140,14 +140,6 @@ def fam_download_file(accession: str, file: str):
     return file
 
 
-def get_downloads():
-    return ['AMPSphere_latest.sqlite',
-            'AMPSphere_latest.mmseqsdb',
-            'AMPSphere_latest.hmm',
-            'AMP.tsv',
-            'GMSCMetadata.tsv']
-
-
 def cal_consensus_seq(accession):
     file = pathlib.Path(cfg.get('pre_computed_data')).joinpath('families/aln/{}.aln'.format(accession))
     if file.exists():
