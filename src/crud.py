@@ -5,13 +5,13 @@ import types
 import pandas as pd
 from sqlalchemy.orm import Session, Query
 from sqlalchemy import or_, and_, not_
-from src import models
-from src import utils
 from sqlalchemy import distinct, func, true, false
 from sqlalchemy.sql.expression import func as sql_func
 from fastapi import HTTPException, Request
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 
+
+from src import models, utils, database
 
 def filter_by_criteria(query, db, **criteria):
     """
@@ -50,7 +50,10 @@ def filter_by_criteria(query, db, **criteria):
         if filter in {'habitat', 'sample_genome'}:
             query = query.filter(getattr(models.GMSCMetadata, cols_mapper['GMSCMetadata'][filter]) == value)
         elif filter == 'microbial_source':
-            query = filter_by_gtdb_taxonomy(query, taxonomy=value, db=db)
+            if value not in database.gtdb_taxon_to_rank:
+                raise HTTPException(status_code=400, detail='wrong taxonomy name provided.')
+            rank = database.gtdb_taxon_to_rank[value]
+            query = query.filter(getattr(models.GMSCMetadata, rank) == value)
         elif filter == 'exp_evidence' and value == 'Passed':
             query = query.filter(or_(models.AMP.metaproteomes == 'Passed', models.AMP.metatranscriptomes == 'Passed'))
         elif filter == 'exp_evidence' and value == 'Failed':
@@ -62,17 +65,6 @@ def filter_by_criteria(query, db, **criteria):
             col_values = getattr(models.AMP, cols_mapper['AMP'][filter])
             query = query.filter(and_(float(min_max[0]) <= col_values, col_values <= float(min_max[1])))
     return query
-
-
-def filter_by_gtdb_taxonomy(query, taxonomy, db, rank=None):
-    if not rank:
-        rank_ = db.query(models.GTDBTaxonRank.microbial_source_rank).\
-            filter(models.GTDBTaxonRank.gtdb_taxon == taxonomy).first()
-        if rank_:
-            rank = rank_[0]
-        else:
-            raise HTTPException(status_code=400, detail='wrong taxonomy name provided.')
-    return query.filter(getattr(models.GMSCMetadata, rank) == taxonomy)
 
 
 
@@ -270,7 +262,7 @@ def get_all_options(db: Session):
     global _all_options
     if _all_options is None:
         habitat, = zip(*db.query(models.GMSCMetadata.general_envo_name).distinct())
-        microbial_source, = zip(*db.query(models.GTDBTaxonRank.gtdb_taxon).distinct())
+        microbial_source = tuple(sorted(database.gtdb_taxon_to_rank.keys()))
         quality, = zip(*db.query(models.AMP.RNAcode).distinct())
         peplen_min, peplen_max, mw_min, mw_max, \
         pI_min, pI_max, charge_min, charge_max = db.query(
