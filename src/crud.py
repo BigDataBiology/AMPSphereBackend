@@ -408,7 +408,7 @@ def hmmscan_search(seq: str):
             'bias', 'from_hmm', 'to_hmm', 'from_ali', 'to_ali', 'from_env',
             'to_env', 'acc', 'description_of_target']
         try:
-            df = pd.read_table(output_file, header=2, skipfooter=10, sep='\s+', engine='python')
+            df = pd.read_table(output_file, header=2, skipfooter=10, sep=r'\s+', engine='python')
         except pd.errors.EmptyDataError:
             df = pd.DataFrame(columns=columns)
         df.columns = columns
