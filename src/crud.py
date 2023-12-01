@@ -46,14 +46,19 @@ def filter_by_criteria(query, db, **criteria):
 
     criteria = {key: value for key, value in criteria.items() if value}
 
+    subquery = None
     for filter, value in criteria.items():
         if filter in {'habitat', 'sample_genome'}:
-            query = query.filter(getattr(models.GMSCMetadata, cols_mapper['GMSCMetadata'][filter]) == value)
+            if subquery is None:
+                subquery = db.query(models.GMSCMetadata.AMP)
+            subquery = subquery.where(getattr(models.GMSCMetadata, cols_mapper['GMSCMetadata'][filter]) == value)
         elif filter == 'microbial_source':
             if value not in database.gtdb_taxon_to_rank:
                 raise HTTPException(status_code=400, detail='wrong taxonomy name provided.')
             rank = database.gtdb_taxon_to_rank[value]
-            query = query.filter(getattr(models.GMSCMetadata, rank) == value)
+            if subquery is None:
+                subquery = db.query(models.GMSCMetadata.AMP)
+            subquery = subquery.where(getattr(models.GMSCMetadata, rank) == value)
         elif filter == 'exp_evidence' and value == 'Passed':
             query = query.filter(or_(models.AMP.metaproteomes == 'Passed', models.AMP.metatranscriptomes == 'Passed'))
         elif filter == 'exp_evidence' and value == 'Failed':
@@ -64,6 +69,8 @@ def filter_by_criteria(query, db, **criteria):
             min_max: [str] = value.split(',')
             col_values = getattr(models.AMP, cols_mapper['AMP'][filter])
             query = query.filter(and_(float(min_max[0]) <= col_values, col_values <= float(min_max[1])))
+    if subquery:
+        query = query.where(models.AMP.accession.in_(subquery))
     return query
 
 
