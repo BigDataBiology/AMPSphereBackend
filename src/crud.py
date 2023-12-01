@@ -252,7 +252,7 @@ def get_statistics(db: Session):
     # TODO display two numbers for num_genomes / num_metagenomes
     #               (analyzed_genomes..., num_...containing amps)
     # TODO FIX here.
-    stats = db.query(models.Statistics).first()
+    stats = db.query(models.Statistics).one()
     return dict(
         num_genes=stats.gmsc,
         num_amps=stats.amp,
