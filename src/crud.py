@@ -92,9 +92,7 @@ def get_amp(accession: str, db: Session):
 
 
 def _decorate_amp_obj(amp_obj, db : Session):
-    feature_graph_points = utils.get_graph_points(amp_obj.sequence)
     metadata = get_amp_metadata(amp_obj.accession, db, page=0, page_size=5)
-    setattr(amp_obj, "feature_graph_points", feature_graph_points)
     setattr(amp_obj, "secondary_structure", utils.get_secondary_structure(amp_obj.sequence))
     setattr(amp_obj, "metadata", metadata)
     return amp_obj

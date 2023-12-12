@@ -138,7 +138,6 @@ class AMP(BaseModel):
     metatranscriptomes: str
     coordinates: str
     secondary_structure: Dict[str, float]
-    feature_graph_points: Optional[FeatureGraphPoints] = None
     metadata: PagedMetadata
     model_config = ConfigDict(from_attributes=True)
 
