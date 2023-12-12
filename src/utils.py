@@ -9,9 +9,8 @@ from datetime import datetime
 from pprint import pprint
 import uuid
 import pandas as pd
-from Bio import SearchIO, AlignIO
+from Bio import AlignIO
 from Bio.Align import AlignInfo
-from Bio.pairwise2 import format_alignment
 from collections import OrderedDict
 
 
