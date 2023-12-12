@@ -25,3 +25,9 @@ def test_downloads():
 def test_statistics():
     r = client.get("v1/statistics")
     assert r.json()['num_habitats'] == 73
+
+
+def test_microbial_source_filter():
+    data = client.get("v1/amps?page=0&page_size=100&microbial_source=Pseudoalteromonas%20luteoviolacea_F").json()
+    assert len(data['data']) == 2
+    assert [x['accession'] for x in data['data']] == ['AMP10.224_819', 'AMP10.723_664']
