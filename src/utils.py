@@ -65,7 +65,7 @@ scales = {'Parker': {'W': 1.0, 'F': 0.96, 'L': 0.96,
                  'R': 14.92, 'P': 0.0}}
 
 
-def get_amp_features(seq, include_graph_points=True):
+def get_amp_features(seq, include_graph_points=False):
     """
     :param seq:
     :return:
@@ -81,6 +81,9 @@ def get_amp_features(seq, include_graph_points=True):
             Secondary_structure: [..., ..., ...],
         }
     """
+    if include_graph_points:
+        raise NotImplementedError
+
     analyzed_seq = ProteinAnalysis(str(seq))
 
     return {'Secondary_structure': dict(zip(['helix', 'turn', 'sheet'], analyzed_seq.secondary_structure_fraction())),
@@ -92,8 +95,8 @@ def get_amp_features(seq, include_graph_points=True):
            'MW': round_3(analyzed_seq.molecular_weight()),
            'Charge_at_pH_7': round_3(analyzed_seq.charge_at_pH(7.0)),
            'Instability_index': round_3(analyzed_seq.instability_index()),
-           'Isoelectric_point': round_3(analyzed_seq.isoelectric_point()),
-           'graph_points': get_graph_points(seq) if include_graph_points else None}
+           'Isoelectric_point': round_3(analyzed_seq.isoelectric_point())
+           }
 
 
 def get_secondary_structure(seq):
@@ -104,22 +107,6 @@ def get_secondary_structure(seq):
             'turn': t,
             'sheet': s,
             }
-
-
-def get_graph_points(seq):
-    graphs = ['transfer_energy', 'hydrophobicity_parker', 'surface_accessibility', 'flexibility']
-    param_dict_list = [scales['ez'], scales['Parker'], ProtParamData.em, ProtParamData.Flex]
-    wd = 5
-    analyzed_seq = ProteinAnalysis(str(seq))
-    graph_points = {}
-    for graph, param_dict in zip(graphs, param_dict_list):
-        val = analyzed_seq.protein_scale(window=wd, param_dict=param_dict)
-        xval, xcolors = [], []
-        for i in range(0, len(val)):
-            xcolors.append(colorpallete[seq[i]])
-            xval.append(f'{seq[i]}{i}')
-        graph_points[graph] = {'type': 'line plot', 'x': xval, 'y': val, 'c': xcolors}
-    return graph_points
 
 
 def fam_download_file(accession: str, file: str):

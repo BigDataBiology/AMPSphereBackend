@@ -116,13 +116,6 @@ def mk_result(data, total_items, page_size, page):
             })
 
 
-def get_amp_features(accession: str, db: Session):
-    q = db.query(models.AMP.sequence).filter(models.AMP.accession == accession).first()
-    if not q:
-        raise HTTPException(status_code=400, detail='invalid accession received.')
-    else:
-        seq, = q
-    return utils.get_amp_features(seq)
 
 
 def get_families(db: Session, page: int, page_size: int, request: Request, **kwargs):
