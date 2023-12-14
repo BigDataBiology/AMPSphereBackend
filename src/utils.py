@@ -150,13 +150,10 @@ def recursive_round3(obj):
 def compute_distribution_from_query_data(query_data):
     if len(query_data) > 0:
         metadata = pd.DataFrame([obj.__dict__ for obj in query_data]).drop(columns='_sa_instance_state')
-        # print(metadata)
         color_map = {}
         metadata['latitude'] = metadata['latitude'].replace('', np.nan).astype(float).round(1)
         metadata['longitude'] = metadata['longitude'].replace('', np.nan).astype(float).round(1)
-        metadata['habitat_type'] = pd.Categorical(metadata['general_envo_name'].apply(lambda x: x.split(':')[0]))
-        # print(metadata[['habitat_type', 'microontology']])
-        # metadata['color'] = metadata['habitat_type'].map(color_map)
+        metadata['habitat_type'] = pd.Categorical(metadata['general_envo_name'].str.split(':').str[0])
         data = dict(
             geo=metadata[['AMP', 'latitude', 'longitude', 'habitat_type']].
                 groupby(['latitude', 'longitude', 'habitat_type'], as_index=False, observed=True).size(),
@@ -172,7 +169,6 @@ def compute_distribution_from_query_data(query_data):
         if data['habitat'].shape[0] > 0:
             d = data['habitat'][['general_envo_name', 'size']].set_index('general_envo_name')['size'].to_dict()
             d_ordered = OrderedDict(sorted(d.items(), key=lambda x: x[1], reverse=True))
-            print(d_ordered)
             data['habitat'] = dict(
                 labels=list(d_ordered.keys()),
                 parents=list(),
@@ -183,7 +179,6 @@ def compute_distribution_from_query_data(query_data):
         def simplify(data):
             data = data.sort_values(by='size', ascending=False).set_index('microbial_source_s')['size']
             data = OrderedDict(zip(data.index.tolist(), data.tolist()))
-            # print(data)
             others_count = 0
             result = dict()
             for key, value in data.items():
