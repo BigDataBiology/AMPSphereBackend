@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import argparse
 from Bio import SeqIO
-import datatable as dt
 import pathlib
 import xz
 from collections import defaultdict
@@ -32,8 +31,8 @@ args = parser.parse_args()
 
 print('Loading input data...', end=' ')
 metadata_file = pathlib.Path(args.metadata)
-metadata = dt.fread(args.metadata, sep='\t', na_strings=['NA']).to_pandas()
-features = dt.fread(args.features, sep='\t').to_pandas()
+metadata = pd.read_table(args.metadata, sep='\t', na_values=['NA'])
+features = pd.read_table(args.features, sep='\t')
 with gzip.open(args.faa, 'rt') as f:
     faa = SeqIO.parse(f, 'fasta')
     AMP_cols = ['accession', 'sequence', 'family']
@@ -42,8 +41,8 @@ with xz.open(args.fna, 'rt') as f:
     fna = SeqIO.parse(f, 'fasta')
     GMSC_cols = ['accession', 'gene_sequence', 'AMP']
     gmsc_table = pd.DataFrame([[r.id, str(r.seq), r.description.split(' | ')[1]] for r in fna.records], columns=GMSC_cols)
-quality = dt.fread(args.quality, sep='\t').to_pandas()
-taxa_files = [dt.fread(file, sep='\t').to_pandas() for file in args.gtdb_files]
+quality = pd.read_table(args.quality, sep='\t')
+taxa_files = [pd.read_table(file, sep='\t') for file in args.gtdb_files]
 taxonomy = pd.concat(taxa_files).reset_index()
 # Generate progenomes to gtdb conversion dict.
 ncbi_id_to_gtdb_tax = defaultdict(str)
