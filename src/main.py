@@ -32,14 +32,14 @@ app = FastAPI(
     openapi_url='/openapi.json'
 )
 
-# Repeated with Nginx one, so remove it.
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-#     allow_credentials=True,
-# )
+if 'ADD_CORS_HEADERS' in os.environ:
+    app.add_middleware(
+         CORSMiddleware,
+         allow_origins=["*"],
+         allow_methods=["*"],
+         allow_headers=["*"],
+         allow_credentials=True,
+     )
 
 
 for router in [amp_router, family_router, default_router]:
