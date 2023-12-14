@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from src import schemas
 from src import utils
 from src import crud
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 
 
 def get_db():
@@ -115,15 +115,14 @@ family_router = APIRouter(
                    response_model=schemas.PagedFamilies,
                    response_class=JSONResponse,
                    summary=default_route_summary)
-def families(request: Request,
-             db: Session = Depends(get_db),
+def families(db: Session = Depends(get_db),
              habitat: str = None,
              sample: str = None,
              microbail_source: str = None,
              page_size: int = 5,
              page: int = 0):
     families = crud.get_families(
-        db=db, request=request, page=page, page_size=page_size,
+        db=db, page=page, page_size=page_size,
         habitat=habitat, microbail_source=microbail_source, sample=sample)
     return families
 
@@ -132,8 +131,8 @@ def families(request: Request,
                    response_model=schemas.Family,
                    response_class=JSONResponse,
                    summary=default_route_summary)
-def family(accession: str, request: Request, db: Session = Depends(get_db)):
-    return crud.get_family(accession, db=db, request=request)
+def family(accession: str, db: Session = Depends(get_db)):
+    return crud.get_family(accession, db=db)
 
 
 
@@ -159,9 +158,8 @@ def fam_distributions(accession: str = 'SPHERE-III.001_396', db: Session = Depen
                    response_class=JSONResponse,
                    summary=default_route_summary)
 def fam_downloads(accession: str,
-                  request: Request,
                   db: Session = Depends(get_db)):
-    return crud.get_fam_downloads(accession=accession, db=db, request=request)
+    return crud.get_fam_downloads(accession=accession, db=db)
 
 
 @family_router.get("/{accession}/downloads/{file}",

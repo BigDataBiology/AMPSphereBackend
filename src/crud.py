@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, Query
 from sqlalchemy import or_, and_, not_
 from sqlalchemy import distinct, func, select
 from sqlalchemy.sql.expression import func as sql_func
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 
 
@@ -118,7 +118,7 @@ def mk_result(data, total_items, page_size, page):
 
 
 
-def get_families(db: Session, page: int, page_size: int, request: Request, **kwargs):
+def get_families(db: Session, page: int, page_size: int, **kwargs):
     query = db.query(distinct(models.AMP.family)).outerjoin(models.GMSCMetadata)
     # Mapping from filter keys to table columns
     metadata_cols = {
@@ -131,11 +131,11 @@ def get_families(db: Session, page: int, page_size: int, request: Request, **kwa
     accessions = query.offset(page * page_size).limit(page_size).all()
     # if len(accessions) == 0:
     #     raise HTTPException(status_code=400, detail='invalid filter applied.')
-    data = [get_family(accession, db=db, request=request) for accession, in accessions]
+    data = [get_family(accession, db=db) for accession, in accessions]
     return mk_result(data, query.counts(), page=page, page_size=page_size)
 
 
-def get_family(accession: str, db: Session, request: Request):
+def get_family(accession: str, db: Session):
     return dict(
         accession=accession,
         consensus_sequence=utils.cal_consensus_seq(accession),
@@ -143,7 +143,7 @@ def get_family(accession: str, db: Session, request: Request):
         feature_statistics=get_fam_features(accession, db),
         distributions=get_distributions(accession, db),
         associated_amps=get_associated_amps(accession, db),
-        downloads=get_fam_downloads(accession, db=db, request=request)
+        downloads=get_fam_downloads(accession, db=db),
     )
 
 
@@ -158,7 +158,7 @@ def get_fam_metadata(accession: str, db: Session, page: int, page_size: int):
 
 def get_fam_features(accession: str, db: Session):
     amps = db.query(models.AMP).filter(models.AMP.family == accession).all()
-    features = [utils.get_amp_features(amp.sequence, include_graph_points=False) for amp in amps]
+    features = [utils.get_amp_features(amp.sequence) for amp in amps]
     accessions = [amp.accession for amp in amps]
     if len(features) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
@@ -184,7 +184,7 @@ def get_distributions(accession: str, db: Session):
     return utils.compute_distribution_from_query_data(raw_data)
 
 
-def get_fam_downloads(accession, db: Session, request: Request):
+def get_fam_downloads(accession, db: Session):
     # TODO change prefix here for easier maintenance.
     q = db.query(models.AMP.family).filter(models.AMP.family == accession).first()
     in_db = bool(q)

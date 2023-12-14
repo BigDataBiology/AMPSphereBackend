@@ -65,7 +65,7 @@ scales = {'Parker': {'W': 1.0, 'F': 0.96, 'L': 0.96,
                  'R': 14.92, 'P': 0.0}}
 
 
-def get_amp_features(seq, include_graph_points=False):
+def get_amp_features(seq):
     """
     :param seq:
     :return:
@@ -81,9 +81,6 @@ def get_amp_features(seq, include_graph_points=False):
             Secondary_structure: [..., ..., ...],
         }
     """
-    if include_graph_points:
-        raise NotImplementedError
-
     analyzed_seq = ProteinAnalysis(str(seq))
 
     return {'Secondary_structure': dict(zip(['helix', 'turn', 'sheet'], analyzed_seq.secondary_structure_fraction())),
