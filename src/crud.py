@@ -78,6 +78,7 @@ def filter_by_criteria(query, db, **criteria):
 def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
     query = db.query(models.AMP)
     query = filter_by_criteria(query=query, db=db, **kwargs)
+    query = query.order_by(models.AMP.accession)
     data = query.offset(page * page_size).limit(page_size).all()
     for amp_obj in data:
         _decorate_amp_obj(amp_obj, db)
