@@ -140,28 +140,14 @@ def round_3(num: float):
     return round(num, 3)
 
 
-def df_to_formatted_json(df, sep="."):
-    """
-    The opposite of json_normalize
-    """
-    result = []
-    for idx, row in df.iterrows():
-        parsed_row = {}
-        for col_label, v in row.items():
-            keys = col_label.split(".")
-
-            current = parsed_row
-            for i, k in enumerate(keys):
-                if i == len(keys) - 1:
-                    current[k] = v
-                else:
-                    if k not in current.keys():
-                        current[k] = {}
-                    current = current[k]
-        # save
-        result.append(parsed_row)
-    return result
-
+def recursive_round3(obj):
+    if type(obj) == list:
+        return [recursive_round3(el) for el in obj]
+    if type(obj) == dict:
+        return {k:recursive_round3(v) for k,v in obj.items()}
+    if type(obj) == float:
+        return round_3(obj)
+    return obj
 
 
 def compute_distribution_from_query_data(query_data):

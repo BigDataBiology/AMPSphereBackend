@@ -136,7 +136,7 @@ def get_families(db: Session, page: int, page_size: int, request: Request, **kwa
 
 
 def get_family(accession: str, db: Session, request: Request):
-    family = dict(
+    return dict(
         accession=accession,
         consensus_sequence=utils.cal_consensus_seq(accession),
         num_amps=db.query(func.count(models.AMP.accession).filter(models.AMP.family == accession)).scalar(),
@@ -145,7 +145,6 @@ def get_family(accession: str, db: Session, request: Request):
         associated_amps=get_associated_amps(accession, db),
         downloads=get_fam_downloads(accession, db=db, request=request)
     )
-    return family
 
 
 def get_fam_metadata(accession: str, db: Session, page: int, page_size: int):
@@ -164,10 +163,8 @@ def get_fam_features(accession: str, db: Session):
     if len(features) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     else:
-        statistics = pd.json_normalize(features).round(3)
-        # statistics.index = accessions
-        # print(statistics)
-        return dict(zip(accessions, utils.df_to_formatted_json(statistics)))
+        statistics = utils.recursive_round3(features)
+        return {ix: row for ix, row in zip(accessions, statistics)}
 
 
 def get_associated_amps(accession, db):

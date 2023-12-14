@@ -133,8 +133,8 @@ def families(request: Request,
                    response_class=JSONResponse,
                    summary=default_route_summary)
 def family(accession: str, request: Request, db: Session = Depends(get_db)):
-    families = crud.get_family(accession, db=db, request=request)
-    return families
+    return crud.get_family(accession, db=db, request=request)
+
 
 
 @family_router.get(path="/{accession}/features",
