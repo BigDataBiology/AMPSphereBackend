@@ -77,7 +77,7 @@ def get_amp_features(seq):
             GRAVY: ...,
             Instability_index: ...,
             Isoeletric_point: ...,
-            Charget_at_pH_7: ...,
+            Charge_at_pH_7: ...,
             Secondary_structure: [..., ..., ...],
         }
     """
