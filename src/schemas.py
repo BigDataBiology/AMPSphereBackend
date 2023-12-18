@@ -137,8 +137,9 @@ class AMP(BaseModel):
     metaproteomes: str
     metatranscriptomes: str
     coordinates: str
-    secondary_structure: Dict[str, float]
-    metadata: PagedMetadata
+    num_genes : Optional[int] = None
+    secondary_structure: Optional[Dict[str, float]] = None
+    metadata: Optional[PagedMetadata] = None
     model_config = ConfigDict(from_attributes=True)
 
 

@@ -81,21 +81,30 @@ def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
     query = query.order_by(models.AMP.accession)
     data = query.offset(page * page_size).limit(page_size).all()
     for amp_obj in data:
-        _decorate_amp_obj(amp_obj, db)
+        amp_obj.secondary_structure = None
+        amp_obj.metadata = None
+        amp_obj.num_genes = get_number_genes(amp_obj.accession, db)
     return mk_result(data, query.count(), page=page, page_size=page_size)
+
+
+_number_genes_cache = {}
+def get_number_genes(accession, db):
+    global _number_genes_cache
+    if r := _number_genes_cache.get(accession):
+        return r
+    r = db.query(func.count(models.GMSCMetadata.GMSC_accession)) \
+                .where(models.GMSCMetadata.AMP == accession) \
+                .scalar()
+    _number_genes_cache[accession] = r
+    return r
 
 
 def get_amp(accession: str, db: Session):
     amp_obj = db.query(models.AMP).filter(models.AMP.accession == accession).one()
     if not amp_obj:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    return _decorate_amp_obj(amp_obj, db)
-
-
-def _decorate_amp_obj(amp_obj, db : Session):
-    metadata = get_amp_metadata(amp_obj.accession, db, page=0, page_size=5)
-    setattr(amp_obj, "secondary_structure", utils.get_secondary_structure(amp_obj.sequence))
-    setattr(amp_obj, "metadata", metadata)
+    amp_obj.metadata = get_amp_metadata(amp_obj.accession, db, page=0, page_size=5)
+    amp_obj.secondary_structure = utils.get_secondary_structure(amp_obj.sequence)
     return amp_obj
 
 
