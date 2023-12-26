@@ -1,6 +1,6 @@
 # AMPSphereBackend
 
-This repository contains source code for the backend of AMPSphere website.
+This repository contains source code for the backend of [AMPSphere website](https://ampsphere.big-data-biology.org)
 
 ## Components and description
 
@@ -63,7 +63,12 @@ data/original_data
 ### Prepare the environment
 
 ```bash
-pip install -r requirements.txt
+conda install -c default -c conda-forge -c bioconda \
+    fastapi gunicorn sqlalchemy pandas pytest pydantic biopython requests
+    mmseqs2 hmmer uvicorn
+
+# For testing
+conda install -c default -c conda-forge httpx
 ```
 
 ### Generate the backend data and test on dev server
@@ -72,41 +77,31 @@ pip install -r requirements.txt
 
 ```bash
 ./generate_data.sh  
-python -m pytest tests/testing.py
+python -m pytest tests
 ```
 
 This will cost hours to half a day depends on the available computing resources.
 
-If everything is Okay, please transfer all your data to continue.
 
 ### Transfer all the data to the production server
 
 ```bash
 tar zcvf data.tgz --exclude "data/original_data" data
-scp data.tgz ampsphere-asia:/AMPSphere/website/AMPSphereBackend/
+scp data.tgz ampsphere-api.big-data-biology.org:/AMPSphere/website/AMPSphereBackend/
 ```
-
-This should cost 1-3 hours depends on the connection quality.
 
 ### Uncompress the data and do unittest before production
 
 ```bash
 tar zxvf data.tgz
-python -m pytest tests/testing.py
+python -m pytest tests/
 ```
 
 If everything is Okay, please run the backend in production mode.
 
-### Run the backend service in production mode
-
-```bash
-sudo env PATH=$PATH gunicorn src.main:app --workers 4  --worker-class uvicorn.workers.UvicornWorker -b 0.0.0.0:1010 --access-logfile '-' -t 120
-
-sudo systemctl restart nginx
-```
 
 Go to its API page and test it manually if necessary: [https://ampsphere-api.big-data-biology.org/](https://ampsphere-api.big-data-biology.org/)
 
 ## Contact
 
-- Hui Chong (huichong.me@gmail.com, https://huichong.me), Big Data Biology Lab.
+- [Luis Pedro Coelho](https://luispedro.org)
