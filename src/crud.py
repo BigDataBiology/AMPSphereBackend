@@ -3,12 +3,14 @@ import pathlib
 import types
 
 import pandas as pd
+import sqlalchemy.exc
 from sqlalchemy.orm import Session, Query
 from sqlalchemy import or_, and_, not_
 from sqlalchemy import distinct, func, select
 from sqlalchemy.sql.expression import func as sql_func
 from fastapi import HTTPException
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
+from Bio.pairwise2 import format_alignment
 
 
 from src import models, utils, database
@@ -100,8 +102,9 @@ def get_number_genes(accession, db):
 
 
 def get_amp(accession: str, db: Session):
-    amp_obj = db.query(models.AMP).filter(models.AMP.accession == accession).one()
-    if not amp_obj:
+    try:
+        amp_obj = db.query(models.AMP).filter(models.AMP.accession == accession).one()
+    except sqlalchemy.exc.NoResultFound:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     amp_obj.metadata = get_amp_metadata(amp_obj.accession, db, page=0, page_size=5)
     amp_obj.secondary_structure = utils.get_secondary_structure(amp_obj.sequence)
@@ -126,8 +129,6 @@ def mk_result(data, total_items, page_size, page):
             })
 
 
-
-
 def get_families(db: Session, page: int, page_size: int, **kwargs):
     query = db.query(distinct(models.AMP.family)).outerjoin(models.GMSCMetadata)
     # Mapping from filter keys to table columns
@@ -142,7 +143,7 @@ def get_families(db: Session, page: int, page_size: int, **kwargs):
     # if len(accessions) == 0:
     #     raise HTTPException(status_code=400, detail='invalid filter applied.')
     data = [get_family(accession, db=db) for accession, in accessions]
-    return mk_result(data, query.counts(), page=page, page_size=page_size)
+    return mk_result(data, query.count(), page=page, page_size=page_size)
 
 
 def get_family(accession: str, db: Session):
@@ -165,6 +166,12 @@ def get_fam_metadata(accession: str, db: Session, page: int, page_size: int):
         offset(page * page_size).limit(page_size).all()
     return [row.__dict__ for row in m]
 
+def get_amp_features(accession: str, db: Session):
+    try:
+        [seq] = db.query(models.AMP.sequence).filter(models.AMP.accession == accession).one()
+    except sqlalchemy.exc.NoResultFound:
+        raise HTTPException(status_code=400, detail='invalid accession received.')
+    return utils.get_amp_features(seq)
 
 def get_fam_features(accession: str, db: Session):
     amps = db.query(models.AMP).filter(models.AMP.family == accession).all()
@@ -361,7 +368,7 @@ def mmseqs_search(seq: str, db):
         except pd.errors.EmptyDataError:
             df = pd.DataFrame(columns=columns)
         df.columns = columns
-        format_alignment0 = lambda x: utils.format_alignment(
+        format_alignment0 = lambda x: format_alignment(
             x['seq_query'], x['seq_target'], x['bit_score'], x['domain_start_position_target'] - 1,
             x['domain_end_position_target']
         ).split('\n')[0:3]

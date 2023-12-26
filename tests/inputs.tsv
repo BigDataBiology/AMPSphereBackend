@@ -64,9 +64,9 @@ API path	Input accession	Input query	Input type	Response code	Exception detail
 /v1/families/{accession}/downloads	none		invalid	400	invalid accession received.
 /v1/families/{accession}/downloads	 		invalid	400	invalid accession received.
 /v1/families/{accession}/downloads			invalid	404	
-/v1/search/mmseqs		query=KKVKSIFKKALAMMGENEVKAWGIGIK	valid	200	
-/v1/search/mmseqs		query=LLLVLVLVVLCLCLCL	valid	200	
-/v1/search/mmseqs		query=WRWRWRRRRWRWRGIK	valid	200	
-/v1/search/hmmer		query=KKVKSIFKKALAMMGENEVKAWGIGIK	valid	200	
-/v1/search/hmmer		query=LLLVLVLVVLCLCLCL	valid	200	
-/v1/search/hmmer		query=WRWRWRRRRWRWRGIK	valid	200	
+/v1/search/mmseqs		query=%3Eq%0AKKVKSIFKKALAMMGENEVKAWGIGIK%0A	valid	200	
+/v1/search/mmseqs		query=%3Eq%0ALLLVLVLVVLCLCLCL	valid	200	
+/v1/search/mmseqs		query=%3Eq%0AWRWRWRRRRWRWRGIK	valid	200	
+/v1/search/hmmer		query=%3Eq%0AKKVKSIFKKALAMMGENEVKAWGIGIK	valid	200	
+/v1/search/hmmer		query=%3Eq%0ALLLVLVLVVLCLCLCL	valid	200	
+/v1/search/hmmer		query=%3Eq%0AWRWRWRRRRWRWRGIK	valid	200	

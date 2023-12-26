@@ -1,9 +1,15 @@
 import json
+import pandas as pd
 from src import main
 from fastapi.testclient import TestClient
 from src import crud, database, router
+import pytest
 
 client = TestClient(main.app)
+
+def test_root():
+    response = client.get("/")
+    assert response.status_code == 200
 
 def test_basic_lookup():
     r = client.get("/v1/amps/AMP10.000_001")
@@ -38,3 +44,14 @@ def test_microbial_source_filter():
     assert [x['accession'] for x in data['data']] == ['AMP10.224_819', 'AMP10.723_664']
 
 
+
+inputs = pd.read_table('tests/inputs.tsv', sep='\t').fillna('')
+inputs['Test path'] = inputs.apply(
+    lambda x: x['API path'].format(accession=x['Input accession']) +
+              ('?{}'.format(x['Input query']) if x['Input query'] != '' else ''),
+    axis=1)
+
+@pytest.mark.parametrize('test_path, response_code', inputs[['Test path', 'Response code']].values.tolist())
+def test_all(test_path, response_code):
+    response = client.get(test_path)
+    assert response.status_code == response_code
