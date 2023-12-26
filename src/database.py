@@ -11,3 +11,4 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 gtdb_taxon_to_rank = pd.read_table('data/tables/GTDBTaxonRank.tsv', index_col=0, usecols=(1,2)).squeeze().to_dict()
+coprediction = pd.read_table('data/tables/AMP_coprediction_AMPSphere.tsv.xz', index_col=0).to_dict('index')

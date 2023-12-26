@@ -3,9 +3,7 @@ from src.database import SessionLocal
 from typing import List, Dict
 from fastapi import Depends
 from fastapi.responses import FileResponse, JSONResponse
-from src import schemas
-from src import utils
-from src import crud
+from src import schemas, crud, database
 from fastapi import APIRouter
 
 
@@ -104,6 +102,15 @@ def metadata(accession: str = 'AMP10.000_000',
              page_size: int = 20):
     return crud.get_amp_metadata(accession=accession, db=db, page=page, page_size=page_size)
 
+
+@amp_router.get(path="/{accession}/coprediction",
+                response_class=JSONResponse,
+                summary=default_route_summary)
+def coprediction(accession: str = 'AMP10.000_000'):
+    r = database.coprediction.get(accession, None)
+    if r is None:
+        raise HTTPException(status_code=400, detail='invalid accession received.')
+    return [{'predictor': k, 'value': v} for k, v in r.items()]
 
 family_router = APIRouter(
     prefix=version + '/families',
