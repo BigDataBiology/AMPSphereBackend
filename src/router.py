@@ -3,7 +3,7 @@ from src.database import SessionLocal
 from typing import List, Dict
 from fastapi import Depends
 from fastapi.responses import FileResponse, JSONResponse
-from src import schemas, crud, database
+from src import schemas, crud, database, utils
 from fastapi import APIRouter
 
 
