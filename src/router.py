@@ -217,10 +217,9 @@ def get_all_options():
 
 @default_router.get(path='/in_db/{entity_type}/{accession}',
                     summary=default_route_summary)
-def in_db(db: Session = Depends(get_db),
-          entity_type: str = 'family',
+def in_db(entity_type: str = 'family',
           accession: str = 'SPHERE-III.000_428'):
-    return crud.entity_in_db(db=db, entity_type=entity_type, accession=accession)
+    return crud.entity_in_db(entity_type=entity_type, accession=accession)
 
 
 

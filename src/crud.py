@@ -317,14 +317,12 @@ def get_all_options():
     return _all_options
 
 
-def entity_in_db(db, entity_type, accession):
+def entity_in_db(entity_type, accession):
     if entity_type == 'family':
-        exists = db.query(db.query(models.AMP).filter(models.AMP.family == accession).exists()).scalar()
-    elif entity_type in {'sample', 'genome'}:
-        exists = db.query(db.query(models.GMSCMetadata).filter(models.GMSCMetadata.sample == accession).exists()).scalar()
-    else:
-        exists = False
-    return exists
+        return accession in database.amps['family'].values
+    if entity_type in {'sample', 'genome'}:
+        return accession in database.gmsc_metadata['sample'].values
+    return False
 
 
 def mmseqs_search(seq: str):
