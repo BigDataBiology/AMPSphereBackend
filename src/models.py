@@ -24,6 +24,9 @@ accession       sequence        family  length  molecular_weight        isoelect
     metaproteomes = Column(String)
     metatranscriptomes = Column(String)
     coordinates = Column(String)
+    def __str__(self):
+        return f'AMP(accession={self.accession}, family={self.family})'
+    __repr__ = __str__
 
 
 class GMSCMetadata(Base):
