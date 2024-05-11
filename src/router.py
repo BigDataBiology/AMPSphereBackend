@@ -68,9 +68,8 @@ def amps(
                 response_model=schemas.AMP,
                 response_class=JSONResponse,
                 summary=default_route_summary)
-def amp(accession: str,
-        db: Session = Depends(get_db)):
-    return crud.get_amp(accession, db)
+def amp(accession: str):
+    return crud.get_amp(accession)
 
 
 @amp_router.get(path="/{accession}/features",
@@ -95,10 +94,9 @@ def distributions(accession: str = 'AMP10.000_000'):
                 response_class=JSONResponse,
                 summary=default_route_summary)
 def metadata(accession: str = 'AMP10.000_000',
-             db: Session = Depends(get_db),
              page: int = 0,
              page_size: int = 20):
-    return crud.get_amp_metadata(accession=accession, db=db, page=page, page_size=page_size)
+    return crud.get_amp_metadata(accession=accession, page=page, page_size=page_size)
 
 
 @amp_router.get(path="/{accession}/coprediction",

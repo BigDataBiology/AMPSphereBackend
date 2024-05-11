@@ -99,22 +99,30 @@ def get_amps(page: int = 0, page_size: int = 20, **kwargs):
     return mk_result(data_as_obj, len(query), page=page, page_size=page_size)
 
 
-def get_amp(accession: str, db: Session):
+def get_amp(accession: str):
     try:
-        amp_obj = db.query(models.AMP).filter(models.AMP.accession == accession).one()
-    except sqlalchemy.exc.NoResultFound:
+        amp = database.amps.loc[accession]
+    except KeyError:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    amp_obj.metadata = get_amp_metadata(amp_obj.accession, db, page=0, page_size=5)
+    amp_obj = models.AMP(**amp.to_dict())
+    amp_obj.accession = accession
+    amp_obj.metadata = get_amp_metadata(accession, page=0, page_size=5)
     amp_obj.secondary_structure = utils.get_secondary_structure(amp_obj.sequence)
     return amp_obj
 
 
-def get_amp_metadata(accession: str, db: Session, page: int, page_size: int):
-    query = db.query(models.GMSCMetadata).filter(models.GMSCMetadata.AMP == accession)
-    data = query.offset(page * page_size).limit(page_size).all()
-    if len(data) == 0:
+def get_amp_metadata(accession: str,  page: int, page_size: int):
+    query = database.gmsc_metadata.query('AMP == @accession')
+    if len(query) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    return mk_result(data, total_items=query.count(), page_size=page_size, page=page)
+    data = _page(query, page, page_size)
+    data = data.reset_index().rename(columns={'accession':'GMSC_accession'}).to_dict('records')
+    data_obj = []
+    for it in data:
+        if pd.isna(it['latitude']): it['latitude'] = None
+        if pd.isna(it['longitude']): it['longitude'] = None
+        data_obj.append(models.GMSCMetadata(**it))
+    return mk_result(data_obj, len(query), page_size=page_size, page=page)
 
 def mk_result(data, total_items, page_size, page):
     return types.SimpleNamespace(
@@ -245,7 +253,7 @@ def search_by_text(db: Session, text: str, page: int, page_size: int):
     ))
 
     accessions = query.offset(page * page_size).limit(page_size).all()
-    amps_data = [get_amp(accession, db) for accession, in accessions]
+    amps_data = [get_amp(accession) for accession, in accessions]
     return mk_result(amps_data, total_items=query.count(), page=page, page_size=page_size)
 
 
