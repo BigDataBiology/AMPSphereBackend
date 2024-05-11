@@ -20,7 +20,10 @@ coprediction = \
             index_col=0
         ).to_dict('index')
 
-number_genes_per_amp = \
-        pd.read_csv('data/tables/GMSCMetadata.tsv',
-            sep='\t', index_col=0
-        ).value_counts('AMP').to_dict()
+gmsc_metadata = pd.read_csv('data/tables/GMSCMetadata.tsv',
+            sep='\t', index_col=0,
+            dtype={'latitude': 'float64', 'longitude': 'float64', 'microbial_source_d': str},
+        )
+number_genes_per_amp = gmsc_metadata.value_counts('AMP').to_dict()
+
+amps = pd.read_csv('data/tables/AMP.tsv', sep='\t', index_col=0)

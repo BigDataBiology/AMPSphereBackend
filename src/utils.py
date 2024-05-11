@@ -149,7 +149,7 @@ def recursive_round3(obj):
 
 def compute_distribution_from_query_data(query_data):
     if len(query_data) > 0:
-        metadata = pd.DataFrame([obj.__dict__ for obj in query_data]).drop(columns='_sa_instance_state')
+        metadata = query_data.copy()
         color_map = {}
         metadata['latitude'] = metadata['latitude'].replace('', np.nan).astype(float).round(1)
         metadata['longitude'] = metadata['longitude'].replace('', np.nan).astype(float).round(1)

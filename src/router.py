@@ -77,19 +77,17 @@ def amp(accession: str,
                 response_model=schemas.AMPFeatures,
                 response_class=JSONResponse,
                 summary=default_route_summary)
-def amp_features(accession: str = 'AMP10.000_000',
-                 db: Session = Depends(get_db)):
+def amp_features(accession: str = 'AMP10.000_000'):
     # TODO get sequence here.
-    return crud.get_amp_features(accession, db)
+    return crud.get_amp_features(accession)
 
 
 @amp_router.get(path="/{accession}/distributions",
                 response_model=schemas.Distributions,
                 response_class=JSONResponse,
                 summary=default_route_summary)
-def distributions(accession: str = 'AMP10.000_000',
-                  db: Session = Depends(get_db)):
-    return crud.get_distributions(accession=accession, db=db)
+def distributions(accession: str = 'AMP10.000_000'):
+    return crud.get_distributions(accession=accession)
 
 
 @amp_router.get(path="/{accession}/metadata",
@@ -138,8 +136,8 @@ def families(db: Session = Depends(get_db),
                    response_model=schemas.Family,
                    response_class=JSONResponse,
                    summary=default_route_summary)
-def family(accession: str, db: Session = Depends(get_db)):
-    return crud.get_family(accession, db=db)
+def family(accession: str):
+    return crud.get_family(accession)
 
 
 
@@ -147,26 +145,24 @@ def family(accession: str, db: Session = Depends(get_db)):
                    response_model=Dict[str, schemas.AMPFeatures],
                    response_class=JSONResponse,
                    summary=default_route_summary)
-def fam_features(accession: str = 'SPHERE-III.001_396', db: Session = Depends(get_db)):
-    # TODO get sequence here.
-    return crud.get_fam_features(accession, db=db)
+def fam_features(accession: str = 'SPHERE-III.001_396'):
+    return crud.get_fam_features(accession)
 
 
 @family_router.get(path="/{accession}/distributions",
                    response_model=schemas.Distributions,
                    response_class=JSONResponse,
                    summary=default_route_summary)
-def fam_distributions(accession: str = 'SPHERE-III.001_396', db: Session = Depends(get_db)):
-    return crud.get_distributions(accession=accession, db=db)
+def fam_distributions(accession: str = 'SPHERE-III.001_396'):
+    return crud.get_distributions(accession=accession)
 
 
 @family_router.get("/{accession}/downloads",
                    response_model=schemas.FamilyDownloads,
                    response_class=JSONResponse,
                    summary=default_route_summary)
-def fam_downloads(accession: str,
-                  db: Session = Depends(get_db)):
-    return crud.get_fam_downloads(accession=accession, db=db)
+def fam_downloads(accession: str):
+    return crud.get_fam_downloads(accession=accession)
 
 
 @family_router.get("/{accession}/downloads/{file}",
@@ -223,7 +219,9 @@ def get_all_options(db: Session = Depends(get_db)):
 
 @default_router.get(path='/in_db/{entity_type}/{accession}',
                     summary=default_route_summary)
-def in_db(db: Session = Depends(get_db), entity_type: str = 'family', accession: str = 'SPHERE-III.000_428'):
+def in_db(db: Session = Depends(get_db),
+          entity_type: str = 'family',
+          accession: str = 'SPHERE-III.000_428'):
     return crud.entity_in_db(db=db, entity_type=entity_type, accession=accession)
 
 
@@ -257,8 +255,8 @@ def download_file(file: str):
                     response_model=List[schemas.mmSeqsSearchResult],
                     response_class=JSONResponse,
                     summary=default_route_summary)
-def mmseqs_search(query: str = 'KKVKSIFKKALAMMGENEVKAWGIGIK', db: Session = Depends(get_db)):
-    return crud.mmseqs_search(query, db)
+def mmseqs_search(query: str = 'KKVKSIFKKALAMMGENEVKAWGIGIK'):
+    return crud.mmseqs_search(query)
 
 
 @default_router.get(path="/search/hmmer",

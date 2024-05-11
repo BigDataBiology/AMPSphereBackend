@@ -130,19 +130,19 @@ def get_families(db: Session, page: int, page_size: int, **kwargs):
     accessions = query.offset(page * page_size).limit(page_size).all()
     # if len(accessions) == 0:
     #     raise HTTPException(status_code=400, detail='invalid filter applied.')
-    data = [get_family(accession, db=db) for accession, in accessions]
+    data = [get_family(accession) for accession, in accessions]
     return mk_result(data, query.count(), page=page, page_size=page_size)
 
 
-def get_family(accession: str, db: Session):
+def get_family(accession: str):
     return dict(
         accession=accession,
         consensus_sequence=utils.cal_consensus_seq(accession),
-        num_amps=db.query(func.count(models.AMP.accession).filter(models.AMP.family == accession)).scalar(),
-        feature_statistics=get_fam_features(accession, db),
-        distributions=get_distributions(accession, db),
-        associated_amps=get_associated_amps(accession, db),
-        downloads=get_fam_downloads(accession, db=db),
+        num_amps=database.amps.eval('family == @accession').sum(),
+        feature_statistics=get_fam_features(accession),
+        distributions=get_distributions(accession),
+        associated_amps=get_associated_amps(accession),
+        downloads=get_fam_downloads(accession),
     )
 
 
@@ -154,17 +154,17 @@ def get_fam_metadata(accession: str, db: Session, page: int, page_size: int):
         offset(page * page_size).limit(page_size).all()
     return [row.__dict__ for row in m]
 
-def get_amp_features(accession: str, db: Session):
+def get_amp_features(accession: str):
     try:
-        [seq] = db.query(models.AMP.sequence).filter(models.AMP.accession == accession).one()
-    except sqlalchemy.exc.NoResultFound:
+        seq = database.amps.loc[accession, 'sequence']
+    except KeyError:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     return utils.get_amp_features(seq)
 
-def get_fam_features(accession: str, db: Session):
-    amps = db.query(models.AMP).filter(models.AMP.family == accession).all()
-    features = [utils.get_amp_features(amp.sequence) for amp in amps]
-    accessions = [amp.accession for amp in amps]
+def get_fam_features(accession: str):
+    amps = database.amps.query('family == @accession')
+    features = amps.sequence.map(utils.get_amp_features).to_list()
+    accessions = amps.index
     if len(features) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     else:
@@ -172,16 +172,17 @@ def get_fam_features(accession: str, db: Session):
         return {ix: row for ix, row in zip(accessions, statistics)}
 
 
-def get_associated_amps(accession, db):
-    amp_accessions = db.query(models.AMP.accession).filter(models.AMP.family == accession).all()
-    return [accession for accession, in amp_accessions]
+def get_associated_amps(accession):
+    return database.amps.query('family == @accession').index.to_list()
 
 
-def get_distributions(accession: str, db: Session):
+def get_distributions(accession: str):
+    accession
     if accession.startswith('AMP'):
-        raw_data = db.query(models.GMSCMetadata).filter(models.GMSCMetadata.AMP == accession).all()
+        raw_data = database.gmsc_metadata.query('AMP == @accession')
     elif accession.startswith('SPHERE'):
-        raw_data = db.query(models.GMSCMetadata).outerjoin(models.AMP).filter(models.AMP.family == accession).all()
+        sel_amps = database.amps.query('family == @accession').index
+        raw_data = database.gmsc_metadata[database.gmsc_metadata['AMP'].map(set(sel_amps).__contains__)]
     else:
         raw_data = []
     if len(raw_data) == 0:
@@ -189,10 +190,9 @@ def get_distributions(accession: str, db: Session):
     return utils.compute_distribution_from_query_data(raw_data)
 
 
-def get_fam_downloads(accession, db: Session):
+def get_fam_downloads(accession):
     # TODO change prefix here for easier maintenance.
-    q = db.query(models.AMP.family).filter(models.AMP.family == accession).first()
-    in_db = bool(q)
+    in_db = database.amps.eval('family == @accession').any()
     if not in_db:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     else:
@@ -311,7 +311,7 @@ def entity_in_db(db, entity_type, accession):
     return exists
 
 
-def mmseqs_search(seq: str, db):
+def mmseqs_search(seq: str):
     query_id = str(utils.uuid.uuid4())
     query_time_now = utils.datetime.now()
     tmp_dir = pathlib.Path(utils.cfg['tmp_dir'])
@@ -363,14 +363,9 @@ def mmseqs_search(seq: str, db):
         if df.shape[0] > 0:
             df['alignment_strings'] = df[['seq_query', 'seq_target', 'bit_score', 'domain_start_position_target',
                                           'domain_end_position_target']].apply(format_alignment0, axis=1)
-            df['family'] = df['target_identifier'].apply(lambda x: get_family_by_amp(x, db))
+            df['family'] = df['target_identifier'].map(database.amps['family'])
         records = df.to_dict(orient='records')
         return records
-
-
-def get_family_by_amp(amp_accession, db):
-    family, = db.query(models.AMP.family).filter(models.AMP.accession == amp_accession).first()
-    return family
 
 
 def hmmscan_search(seq: str):
