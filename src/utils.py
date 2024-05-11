@@ -148,57 +148,7 @@ def recursive_round3(obj):
 
 
 def compute_distribution_from_query_data(query_data):
-    if len(query_data) > 0:
-        metadata = query_data.copy()
-        color_map = {}
-        metadata['latitude'] = metadata['latitude'].replace('', np.nan).astype(float).round(1)
-        metadata['longitude'] = metadata['longitude'].replace('', np.nan).astype(float).round(1)
-        metadata['habitat_type'] = pd.Categorical(metadata['general_envo_name'].str.split(':').str[0])
-        data = dict(
-            geo=metadata[['AMP', 'latitude', 'longitude', 'habitat_type']].
-                groupby(['latitude', 'longitude', 'habitat_type'], as_index=False, observed=True).size(),
-            habitat=metadata[['AMP', 'general_envo_name', 'habitat_type']].
-                groupby(['general_envo_name', 'habitat_type'], as_index=False, observed=True).size(),
-            microbial_source=metadata[['AMP', 'microbial_source_s']].
-                groupby('microbial_source_s', as_index=False).size()
-        )
-        names = {'latitude': 'lat', 'longitude': 'lon', 'AMP': 'size'}
-        data['geo'].rename(columns=names, inplace=True)
-        data['geo'] = data['geo'].to_dict(orient='list')
-        data['habitat'] = data['habitat'][data['habitat'].general_envo_name != '']
-        if data['habitat'].shape[0] > 0:
-            d = data['habitat'][['general_envo_name', 'size']].set_index('general_envo_name')['size'].to_dict()
-            d_ordered = OrderedDict(sorted(d.items(), key=lambda x: x[1], reverse=True))
-            data['habitat'] = dict(
-                labels=list(d_ordered.keys()),
-                parents=list(),
-                values=list(d_ordered.values()))
-        else:
-            data['habitat'] = dict(zip(['labels', 'parents', 'values'], [[], [], []]))
-
-        def simplify(data):
-            data = data.sort_values(by='size', ascending=False).set_index('microbial_source_s')['size']
-            data = OrderedDict(zip(data.index.tolist(), data.tolist()))
-            others_count = 0
-            result = dict()
-            for key, value in data.items():
-                if key == '':
-                    others_count += value
-                elif len(result) < 10:
-                    result[key] = value
-                else:
-                    others_count += value
-            result['others *'] = others_count
-            return OrderedDict(sorted(result.items(), key=lambda x: x[1], reverse=True))
-
-        data['microbial_source'] = simplify(data['microbial_source'])
-        data['microbial_source'] = dict(
-            labels=list(data['microbial_source'].keys()),
-            values=list(data['microbial_source'].values())
-        )
-        # print(data['microbial_source'])
-        return data
-    else:
+    if len(query_data) == 0:
         empty_sunburst = dict(
             labels=[''],
             parents=[''],
@@ -214,3 +164,39 @@ def compute_distribution_from_query_data(query_data):
             habitat=empty_sunburst,
             geo=empty_bubblemap
         )
+    metadata = query_data.copy()
+    color_map = {}
+    metadata['latitude'] = metadata['latitude'].replace('', np.nan).astype(float).round(1)
+    metadata['longitude'] = metadata['longitude'].replace('', np.nan).astype(float).round(1)
+    metadata['habitat_type'] = pd.Categorical(metadata['general_envo_name'].str.split(':').str[0])
+
+    geo = metadata[['AMP', 'latitude', 'longitude', 'habitat_type']].\
+        groupby(['latitude', 'longitude', 'habitat_type'], as_index=False, observed=True).size()
+    names = {'latitude': 'lat', 'longitude': 'lon', 'AMP': 'size'}
+    geo.rename(columns=names, inplace=True)
+    geo = geo.to_dict(orient='list')
+
+
+    habitat = metadata[['AMP', 'general_envo_name', 'habitat_type']].\
+                groupby(['general_envo_name', 'habitat_type'], as_index=False, observed=True).size()
+    habitat = habitat[habitat.general_envo_name != '']
+    habitat.sort_values(by='size', inplace=True, ascending=False)
+    habitat = habitat[['general_envo_name', 'size']].set_index('general_envo_name')['size'].to_dict()
+    habitat = dict(
+        labels=list(habitat.keys()),
+        values=list(habitat.values()))
+
+    microbial_source = metadata['microbial_source_s'].value_counts()
+    microbial_source = microbial_source.iloc[:10]
+    microbial_source['others *'] = len(metadata) - microbial_source.sum()
+    microbial_source = microbial_source.sort_values(ascending=False).to_dict()
+    microbial_source = dict(
+        labels=list(microbial_source.keys()),
+        values=list(microbial_source.values())
+    )
+
+    return {
+            'geo': geo,
+            'habitat': habitat,
+            'microbial_source': microbial_source
+    }
