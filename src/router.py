@@ -183,8 +183,8 @@ default_router = APIRouter(
                     response_model=schemas.Statistics,
                     response_class=JSONResponse,
                     summary=default_route_summary)
-def get_statistics(db: Session = Depends(get_db)):
-    return crud.get_statistics(db)
+def get_statistics():
+    return crud.get_statistics()
 
 
 @default_router.get(path='/current_available_options',
@@ -213,8 +213,8 @@ def get_filtered_options(db: Session = Depends(get_db),
                     response_class=JSONResponse,
                     summary=default_route_summary
                     )
-def get_all_options(db: Session = Depends(get_db)):
-    return crud.get_all_options(db)
+def get_all_options():
+    return crud.get_all_options()
 
 
 @default_router.get(path='/in_db/{entity_type}/{accession}',

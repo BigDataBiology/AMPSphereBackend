@@ -239,60 +239,58 @@ def search_by_text(db: Session, text: str, page: int, page_size: int):
     return mk_result(amps_data, total_items=query.count(), page=page, page_size=page_size)
 
 
-def get_statistics(db: Session):
-    # TODO SPHEREs with num_amps < 8 should not be treated as families.
-    # TODO display two numbers for num_genomes / num_metagenomes
-    #               (analyzed_genomes..., num_...containing amps)
-    # TODO FIX here.
-    stats = db.query(models.Statistics).one()
-    return dict(
-        num_genes=stats.gmsc,
-        num_amps=stats.amp,
-        num_families=stats.family,
-        num_habitats=stats.general_envo_name,
-        num_genomes=db.query(func.count(distinct(models.GMSCMetadata.sample))).filter(
-            models.GMSCMetadata.is_metagenomic == "False").scalar(),
-        num_metagenomes=db.query(func.count(distinct(models.GMSCMetadata.sample))).filter(
-            models.GMSCMetadata.is_metagenomic == "True").scalar(),
-    )
-
-def _all_used_taxa(db: Session):
+def get_statistics():
     from collections import Counter
+    # Using counter is ~3x faster than using pandas' value_counts
+    return {
+            'num_genes': len(database.gmsc_metadata),
+            'num_amps':  len(database.amps),
+            'num_families': sum(c >= 8 for c in Counter(database.amps['family']).values()),
+            'num_habitats': len(set(database.gmsc_metadata['general_envo_name'])),
+            'num_genomes':     len(set(database.gmsc_metadata.query('~is_metagenomic')['sample'])),
+            'num_metagenomes': len(set(database.gmsc_metadata.query(' is_metagenomic')['sample'])),
+    }
+
+def _all_used_taxa():
     used = set()
     for rank in 'pcofgs':
-        used.update(db.execute(select(distinct(getattr(models.GMSCMetadata, f'microbial_source_{rank}')))).scalars().all())
-    used.remove('')
+        used.update(database.gmsc_metadata[f'microbial_source_{rank}'].dropna())
     # If a genus is present, but all its elements are from the same species, remove it
-    genus_species = db.query(models.GMSCMetadata.microbial_source_g, models.GMSCMetadata.microbial_source_s).distinct().all()
-    cs = Counter(g for g, _ in genus_species)
-    used -= set([k for k,v in cs.items() if v == 1])
+    nr_sp_g = database.gmsc_metadata\
+                [['microbial_source_g', 'microbial_source_s']]\
+                .drop_duplicates()\
+                .groupby('microbial_source_g')\
+                .size()
+    used -= set(nr_sp_g[nr_sp_g <= 1].index)
     used = tuple(sorted(used))
     return used
 
 
+
 _all_options = None
-def get_all_options(db: Session):
+def get_all_options():
     global _all_options
     if _all_options is None:
-        habitat, = zip(*db.query(models.GMSCMetadata.general_envo_name).distinct())
-        quality, = zip(*db.query(models.AMP.RNAcode).distinct())
-        peplen_min, peplen_max, mw_min, mw_max, \
-        pI_min, pI_max, charge_min, charge_max = db.query(
-            func.min(models.AMP.length),
-            func.max(models.AMP.length),
-            func.min(models.AMP.molecular_weight),
-            func.max(models.AMP.molecular_weight),
-            func.min(models.AMP.isoelectric_point),
-            func.max(models.AMP.isoelectric_point),
-            func.min(models.AMP.charge),
-            func.max(models.AMP.charge),
-        ).first()
+        habitat = list(database.gmsc_metadata['general_envo_name'].unique())
+        quality = list(database.amps['RNAcode'].unique())
+        peplen_min = database.amps.sequence.str.len().min()
+        peplen_max = database.amps.sequence.str.len().max()
+
+        mw_min = database.amps.molecular_weight.min()
+        mw_max = database.amps.molecular_weight.max()
+
+        pI_min = database.amps.isoelectric_point.min()
+        pI_max = database.amps.isoelectric_point.max()
+
+        charge_min = database.amps.charge.min()
+        charge_max = database.amps.charge.max()
+
         round_floor = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_FLOOR)
         round_ceiling = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_CEILING)
         _all_options = dict(
             quality=quality,
             habitat=habitat,
-            microbial_source=_all_used_taxa(db),
+            microbial_source=_all_used_taxa(),
             pep_length=dict(min=int(peplen_min), max=int(peplen_max) + 1),
             molecular_weight=dict(min=round_floor(mw_min), max=round_ceiling(mw_max)),
             isoelectric_point=dict(min=round_floor(pI_min), max=round_ceiling(pI_max)),
