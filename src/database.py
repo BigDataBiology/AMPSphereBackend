@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from src.utils import cfg
 import pandas as pd
+import numpy as np
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///" + cfg['ampsphere_main_db']
 
@@ -28,6 +29,15 @@ gmsc_metadata = pd.read_csv('data/tables/GMSCMetadata.tsv',
                 'environment_material': str,
                 },
         )
+gmsc_metadata['geographic_location'].replace(np.nan, '', inplace=True)
+gmsc_metadata['environment_material'].replace(np.nan, '', inplace=True)
+gmsc_metadata['specI'].replace(np.nan, None, inplace=True)
+gmsc_metadata['microbial_source_p'].replace(np.nan, None, inplace=True)
+gmsc_metadata['microbial_source_c'].replace(np.nan, None, inplace=True)
+gmsc_metadata['microbial_source_o'].replace(np.nan, None, inplace=True)
+gmsc_metadata['microbial_source_f'].replace(np.nan, None, inplace=True)
+gmsc_metadata['microbial_source_g'].replace(np.nan, None, inplace=True)
+gmsc_metadata['microbial_source_s'].replace(np.nan, None, inplace=True)
 number_genes_per_amp = gmsc_metadata.value_counts('AMP').to_dict()
 
 amps = pd.read_csv('data/tables/AMP.tsv', sep='\t', index_col=0)
