@@ -22,8 +22,13 @@ coprediction = \
 
 gmsc_metadata = pd.read_csv('data/tables/GMSCMetadata.tsv',
             sep='\t', index_col=0,
-            dtype={'latitude': 'float64', 'longitude': 'float64', 'microbial_source_d': str},
+            # These do not get guessed correctly
+            dtype={
+                'geographic_location': str,
+                'environment_material': str,
+                },
         )
 number_genes_per_amp = gmsc_metadata.value_counts('AMP').to_dict()
 
 amps = pd.read_csv('data/tables/AMP.tsv', sep='\t', index_col=0)
+amps.rename(columns={'Coordinates': 'coordinates'}, inplace=True)

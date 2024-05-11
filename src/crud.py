@@ -15,7 +15,11 @@ from Bio.pairwise2 import format_alignment
 
 from src import models, utils, database
 
-def filter_by_criteria(query, db, **criteria):
+
+def _page(items, page, page_size):
+    return items[page * page_size: (page + 1) * page_size]
+
+def get_filtered_amps(**criteria):
     """
     Possible criteria:
         exp_evidence: str = None,
@@ -31,62 +35,68 @@ def filter_by_criteria(query, db, **criteria):
         pI_interval: str = None,
         charge_interval: str = None,
     """
-    cols_mapper = dict(   # Mapping from query filter names to table column names
-        GMSCMetadata=dict(
-            habitat='general_envo_name',
-            microbial_source='microbial_source',
-            sample_genome='sample'),
-        AMP=dict(
-            antifam='Antifam',
-            RNAcode='RNAcode',
-            coordinates='coordinates',
-            pep_length_interval='length',
-            mw_interval='molecular_weight',
-            pI_interval='isoelectric_point',
-            charge_interval='charge',
-            family='family'))
-
+    amps = database.amps
+    subquery = None
     criteria = {key: value for key, value in criteria.items() if value}
 
-    subquery = None
     for filter, value in criteria.items():
         if filter in {'habitat', 'sample_genome'}:
             if subquery is None:
-                subquery = db.query(models.GMSCMetadata.AMP)
-            subquery = subquery.where(getattr(models.GMSCMetadata, cols_mapper['GMSCMetadata'][filter]) == value)
+                subquery = database.gmsc_metadata
+            col = {
+                'habitat': 'general_envo_name',
+                'sample_genome': 'sample'
+            }[filter]
+            subquery = subquery.query(f'{col} == @value')
         elif filter == 'microbial_source':
             if value not in database.gtdb_taxon_to_rank:
                 raise HTTPException(status_code=400, detail='wrong taxonomy name provided.')
             rank = database.gtdb_taxon_to_rank[value]
             if subquery is None:
-                subquery = db.query(models.GMSCMetadata.AMP)
-            subquery = subquery.where(getattr(models.GMSCMetadata, rank) == value)
+                subquery = database.gmsc_metadata
+            subquery = subquery.query(f'{rank} == @value')
+
         elif filter == 'exp_evidence' and value == 'Passed':
-            query = query.filter(or_(models.AMP.metaproteomes == 'Passed', models.AMP.metatranscriptomes == 'Passed'))
+            amps = amps.query('metaproteomes == "Passed" or metatranscriptomes == "Passed"')
         elif filter == 'exp_evidence' and value == 'Failed':
-            query = query.filter(and_(models.AMP.metaproteomes == 'Failed', models.AMP.metatranscriptomes == 'Failed'))
+            amps = amps.query('metaproteomes == "Failed" and metatranscriptomes == "Failed"')
         elif filter in {'family', 'antifam', 'RNAcode', 'coordinates'}:
-            query = query.filter(getattr(models.AMP, cols_mapper['AMP'][filter]) == value)
+            col = {
+                'family': 'family',
+                'antifam': 'Antifam',
+                'RNAcode': 'RNAcode',
+                'coordinates': 'coordinates'
+                }[filter]
+            amps = amps.query(f'{col} == @value')
         elif filter in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
-            min_max: [str] = value.split(',')
-            col_values = getattr(models.AMP, cols_mapper['AMP'][filter])
-            query = query.filter(and_(float(min_max[0]) <= col_values, col_values <= float(min_max[1])))
-    if subquery:
-        query = query.where(models.AMP.accession.in_(subquery))
-    return query
+            min_v, max_v = value.split(',')
+            min_v = float(min_v)
+            max_v = float(max_v)
+            col = {
+                    'pep_length_interval': 'length',
+                    'mw_interval': 'molecular_weight',
+                    'pI_interval': 'isoelectric_point',
+                    'charge_interval': 'charge'
+                    }[filter]
+            amps = amps.query(f'{min_v} <= {col} <= {max_v}')
+    if subquery is not None:
+        selected = set(subquery['AMP'])
+        amps = amps[amps.index.map(selected.__contains__)]
+    return amps
 
 
-
-def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
-    query = db.query(models.AMP)
-    query = filter_by_criteria(query=query, db=db, **kwargs)
-    query = query.order_by(models.AMP.accession)
-    data = query.offset(page * page_size).limit(page_size).all()
+def get_amps(page: int = 0, page_size: int = 20, **kwargs):
+    query = get_filtered_amps(**kwargs)
+    data = _page(query, page, page_size)
+    data = data.reset_index('accession').to_dict('records')
+    data_as_obj = []
     for amp_obj in data:
+        amp_obj = models.AMP(**amp_obj)
         amp_obj.secondary_structure = None
         amp_obj.metadata = None
         amp_obj.num_genes = database.number_genes_per_amp.get(amp_obj.accession, 0)
-    return mk_result(data, query.count(), page=page, page_size=page_size)
+        data_as_obj.append(amp_obj)
+    return mk_result(data_as_obj, len(query), page=page, page_size=page_size)
 
 
 def get_amp(accession: str, db: Session):
