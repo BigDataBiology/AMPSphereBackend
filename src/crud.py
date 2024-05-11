@@ -85,20 +85,8 @@ def get_amps(db: Session, page: int = 0, page_size: int = 20, **kwargs):
     for amp_obj in data:
         amp_obj.secondary_structure = None
         amp_obj.metadata = None
-        amp_obj.num_genes = get_number_genes(amp_obj.accession, db)
+        amp_obj.num_genes = database.number_genes_per_amp.get(amp_obj.accession, 0)
     return mk_result(data, query.count(), page=page, page_size=page_size)
-
-
-_number_genes_cache = {}
-def get_number_genes(accession, db):
-    global _number_genes_cache
-    if r := _number_genes_cache.get(accession):
-        return r
-    r = db.query(func.count(models.GMSCMetadata.GMSC_accession)) \
-                .where(models.GMSCMetadata.AMP == accession) \
-                .scalar()
-    _number_genes_cache[accession] = r
-    return r
 
 
 def get_amp(accession: str, db: Session):
