@@ -1,18 +1,9 @@
-from sqlalchemy.orm import Session
 from src.database import SessionLocal
 from typing import List, Dict
 from fastapi import Depends
 from fastapi.responses import FileResponse, JSONResponse
 from src import schemas, crud, database, utils
 from fastapi import APIRouter
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # Change here.
@@ -25,7 +16,6 @@ amp_router = APIRouter(
 )
 
 
-# TODO define consistent schema for AMP object.
 @amp_router.get(path="",
                 response_model=schemas.PagedAMPs,
                 response_class=JSONResponse,
@@ -118,16 +108,14 @@ family_router = APIRouter(
                    response_model=schemas.PagedFamilies,
                    response_class=JSONResponse,
                    summary=default_route_summary)
-def families(db: Session = Depends(get_db),
-             habitat: str = None,
+def families(habitat: str = None,
              sample: str = None,
-             microbail_source: str = None,
+             microbial_source: str = None,
              page_size: int = 5,
              page: int = 0):
-    families = crud.get_families(
-        db=db, page=page, page_size=page_size,
-        habitat=habitat, microbail_source=microbail_source, sample=sample)
-    return families
+    return crud.get_families(
+        page=page, page_size=page_size,
+        habitat=habitat, microbial_source=microbial_source, sample=sample)
 
 
 @family_router.get(path="/{accession}",
@@ -183,27 +171,6 @@ default_router = APIRouter(
                     summary=default_route_summary)
 def get_statistics():
     return crud.get_statistics()
-
-
-@default_router.get(path='/current_available_options',
-                    # response_model=schemas.Filters,
-                    response_class=JSONResponse,
-                    summary=default_route_summary
-                    )
-def get_filtered_options(db: Session = Depends(get_db),
-                         quality: str = None,
-                         family: str = None,
-                         habitat: str = None,
-                         sample: str = None,
-                         microbial_source: str = None,
-                         pep_length_interval: str = None,
-                         mw_interval: str = None,
-                         pI_interval: str = None,
-                         charge_interval: str = None):
-    return crud.get_filtered_options(db, quality=quality, family=family, habitat=habitat,
-                                     microbial_source=microbial_source, sample=sample,
-                                     pep_length_interval=pep_length_interval, mw_interval=mw_interval,
-                                     pI_interval=pI_interval, charge_interval=charge_interval)
 
 
 @default_router.get(path='/all_available_options',

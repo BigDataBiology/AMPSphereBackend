@@ -3,15 +3,9 @@ import pathlib
 import types
 
 import pandas as pd
-import sqlalchemy.exc
-from sqlalchemy.orm import Session, Query
-from sqlalchemy import or_, and_, not_
-from sqlalchemy import distinct, func, select
-from sqlalchemy.sql.expression import func as sql_func
 from fastapi import HTTPException
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 from Bio.pairwise2 import format_alignment
-
 
 from src import models, utils, database
 
@@ -135,20 +129,25 @@ def mk_result(data, total_items, page_size, page):
             })
 
 
-def get_families(db: Session, page: int, page_size: int, **kwargs):
-    query = db.query(distinct(models.AMP.family)).outerjoin(models.GMSCMetadata)
-    # Mapping from filter keys to table columns
-    metadata_cols = {
-        'habitat': 'general_envo_name',
-        'microbial_source': 'microbial_source',
-        'sample': 'sample'}
-    for key, value in kwargs.items():
-        if value:
-            query = query.filter(getattr(models.GMSCMetadata, metadata_cols[key]) == value)
-    accessions = query.offset(page * page_size).limit(page_size).all()
-    # if len(accessions) == 0:
-    #     raise HTTPException(status_code=400, detail='invalid filter applied.')
-    data = [get_family(accession) for accession, in accessions]
+def get_families(page: int, page_size: int, habitat=None, microbial_source=None, sample=None):
+    gmsc_metadata = database.gmsc_metadata
+    query = ''
+
+    if habitat is not None:
+        query + 'general_envo_name == @habitat'
+    if microbial_source is not None:
+        rank = database.gtdb_taxon_to_rank[value]
+        if query: query += ' and '
+        query += f'{rank} == @value'
+    if sample is not None:
+        if query: query += ' and '
+        query += f'sample == @sample'
+    if query:
+        gmsc_metadata = gmsc_metadata.query(query)
+    sel_amps = set(gmsc_metadata['AMP'])
+    sel_families = sorted(set(database.amps.loc[sorted(sel_amps)]['family']))
+    accessions = _page(sel_families, page, page_size)
+    data = [get_family(accession) for accession in accessions]
     return mk_result(data, query.count(), page=page, page_size=page_size)
 
 
@@ -163,14 +162,6 @@ def get_family(accession: str):
         downloads=get_fam_downloads(accession),
     )
 
-
-def get_fam_metadata(accession: str, db: Session, page: int, page_size: int):
-    amp_accessions = db.query(models.AMP.accession).filter(models.AMP.family == accession).all()
-    amp_accessions = [accession for accession, in amp_accessions]
-    # TODO FIX HERE
-    m = db.query(models.GMSCMetadata).filter(models.GMSCMetadata.AMPSphere_code.in_(amp_accessions)). \
-        offset(page * page_size).limit(page_size).all()
-    return [row.__dict__ for row in m]
 
 def get_amp_features(accession: str):
     try:
@@ -233,7 +224,7 @@ def get_fam_downloads(accession):
     return {key: item.format(accession) for key, item in path_bases.items()}
 
 
-def search_by_text(db: Session, text: str, page: int, page_size: int):
+def search_by_text(db, text: str, page: int, page_size: int):
     """
     FIXME.
     :param query:
