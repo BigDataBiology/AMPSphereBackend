@@ -39,6 +39,7 @@ gmsc_metadata['microbial_source_f'].replace(np.nan, None, inplace=True)
 gmsc_metadata['microbial_source_g'].replace(np.nan, None, inplace=True)
 gmsc_metadata['microbial_source_s'].replace(np.nan, None, inplace=True)
 number_genes_per_amp = gmsc_metadata.value_counts('AMP').to_dict()
+amp2gmsc = gmsc_metadata[['AMP']].groupby('AMP').groups
 
 amps = pd.read_csv('data/tables/AMP.tsv', sep='\t', index_col=0)
 amps.rename(columns={'Coordinates': 'coordinates'}, inplace=True)

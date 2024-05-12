@@ -106,9 +106,11 @@ def get_amp(accession: str):
 
 
 def get_amp_metadata(accession: str,  page: int, page_size: int):
-    query = database.gmsc_metadata.query('AMP == @accession')
+    query = database.amp2gmsc.get(accession, [])
+
     if len(query) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
+    query = database.gmsc_metadata.loc[query]
     data = _page(query, page, page_size)
     data = data.reset_index().rename(columns={'accession':'GMSC_accession'}).to_dict('records')
     data_obj = []
@@ -188,7 +190,7 @@ def get_associated_amps(accession):
 def get_distributions(accession: str):
     accession
     if accession.startswith('AMP'):
-        raw_data = database.gmsc_metadata.query('AMP == @accession')
+        raw_data = database.gmsc_metadata.loc[database.amp2gmsc.get(accession, [])]
     elif accession.startswith('SPHERE'):
         sel_amps = database.amps.query('family == @accession').index
         raw_data = database.gmsc_metadata[database.gmsc_metadata['AMP'].map(set(sel_amps).__contains__)]
