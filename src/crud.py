@@ -210,47 +210,16 @@ def get_fam_downloads(accession):
     if not in_db:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     else:
-        # FIXME Reimplement this.
-        url_prefix = '{}/v1/families/{}/downloads/{}'.format(
-            'https://ampsphere-api.big-data-biology.org',
-            accession,
-            accession)
-        # FIX bug reported in issue 34, due to nginx proxy.
-        print(url_prefix)
-    path_bases = dict(
-        alignment=str(url_prefix + '.aln'),
-        sequences=str(url_prefix + '.faa'),
-        # hmm_logo=str(url_prefix + '.png'),
-        hmm_profile=str(url_prefix + '.hmm'),
-        # sequence_logo=str(url_prefix + '.pdf'),
-        tree_figure=str(url_prefix + '.ascii'),
-        tree_nwk=str(url_prefix + '.nwk')
+        BASE_URL = 'https://ampsphere-api.big-data-biology.org/v1'
+        url_prefix = f'{BASE_URL}/families/{accession}/downloads/{accession}'
+    return dict(
+        alignment=(url_prefix + '.aln'),
+        sequences=(url_prefix + '.faa'),
+        hmm_profile=(url_prefix + '.hmm'),
+        tree_figure=(url_prefix + '.ascii'),
+        tree_nwk=(url_prefix + '.nwk')
     )
-    return {key: item.format(accession) for key, item in path_bases.items()}
 
-
-def search_by_text(db, text: str, page: int, page_size: int):
-    """
-    FIXME.
-    :param query:
-    :param db:
-    :return:
-    """
-    # TODO retrieve text search result using the command: sqlite-utils search ampsphere_main_db/AMPSphere_v.2021-03.sqlite Metadata {search text}
-    query = db.query(distinct(models.AMP.accession)).outerjoin(models.GMSCMetadata)
-    # Consider blank space as + for query text.
-    query = query.filter(or_(
-        models.AMP.accession.like(text),
-        models.AMP.family.like(text),
-        models.GMSCMetadata.GMSC.like(text),
-        models.GMSCMetadata.sample.like(text),
-        models.GMSCMetadata.general_envo_name.like(text),
-        models.GMSCMetadata.microbial_source.like(text),
-    ))
-
-    accessions = query.offset(page * page_size).limit(page_size).all()
-    amps_data = [get_amp(accession) for accession, in accessions]
-    return mk_result(amps_data, total_items=query.count(), page=page, page_size=page_size)
 
 
 def get_statistics():
