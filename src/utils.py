@@ -1,17 +1,10 @@
 import configparser
 import pathlib
-import subprocess
 
-import numpy as np
-from Bio.SeqUtils.ProtParam import ProtParamData
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
-from datetime import datetime
-from pprint import pprint
-import uuid
 import pandas as pd
 from Bio import AlignIO
 from Bio.Align import AlignInfo
-from collections import OrderedDict
 
 
 def parse_config():
@@ -119,7 +112,6 @@ def fam_download_file(accession: str, file: str):
         nwk='tree_nwk'
     )
     file = pathlib.Path(cfg['pre_computed_data']).joinpath('families').joinpath(folders[extention]).joinpath(file)
-    # print('file exists? ', file.exists())
     return file
 
 
@@ -165,9 +157,8 @@ def compute_distribution_from_query_data(query_data):
             geo=empty_bubblemap
         )
     metadata = query_data.copy()
-    color_map = {}
-    metadata['latitude'] = metadata['latitude'].replace('', np.nan).astype(float).round(1)
-    metadata['longitude'] = metadata['longitude'].replace('', np.nan).astype(float).round(1)
+    metadata['latitude'] = metadata['latitude'].round(1)
+    metadata['longitude'] = metadata['longitude'].round(1)
     metadata['habitat_type'] = pd.Categorical(metadata['general_envo_name'].str.split(':').str[0])
 
     geo = metadata[['AMP', 'latitude', 'longitude', 'habitat_type']].\
