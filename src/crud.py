@@ -1,6 +1,9 @@
 import math
 import pathlib
+import subprocess
 import types
+import uuid
+from datetime import datetime
 
 import pandas as pd
 from fastapi import HTTPException
@@ -150,7 +153,7 @@ def get_families(page: int, page_size: int, habitat=None, microbial_source=None,
     sel_families = sorted(set(database.amps.loc[sorted(sel_amps)]['family']))
     accessions = _page(sel_families, page, page_size)
     data = [get_family(accession) for accession in accessions]
-    return mk_result(data, query.count(), page=page, page_size=page_size)
+    return mk_result(data, len(sel_families), page=page, page_size=page_size)
 
 
 def get_family(accession: str):
@@ -319,8 +322,8 @@ def entity_in_db(entity_type, accession):
 
 
 def mmseqs_search(seq: str):
-    query_id = str(utils.uuid.uuid4())
-    query_time_now = utils.datetime.now()
+    query_id = str(uuid.uuid4())
+    query_time_now = datetime.now()
     tmp_dir = pathlib.Path(utils.cfg['tmp_dir'])
     input_seq_file = tmp_dir.joinpath(query_id + '.input')
     output_file = tmp_dir.joinpath(query_id + '.output')
@@ -348,8 +351,8 @@ def mmseqs_search(seq: str):
     try:
         # TODO redirect the stdout to a temporary file and return its content when there is no match.
         with open(stdout_file, 'w') as f:
-            utils.subprocess.run(command, shell=True, check=True, stdout=f)  ## FIXME
-    except utils.subprocess.CalledProcessError as e:
+            subprocess.run(command, shell=True, check=True, stdout=f)  ## FIXME
+    except subprocess.CalledProcessError as e:
         print('error when executing the command (code {})'.format(e))
         print(e.output)
         return None  # TODO better handle this
@@ -377,8 +380,8 @@ def mmseqs_search(seq: str):
 
 def hmmscan_search(seq: str):
     # FIXME this doesn't work but reports no error, what happened?
-    query_id = str(utils.uuid.uuid4())
-    query_time_now = utils.datetime.now()
+    query_id = str(uuid.uuid4())
+    query_time_now = datetime.now()
     tmp_dir = pathlib.Path(utils.cfg['tmp_dir'])
     input_seq_file = tmp_dir.joinpath(query_id + '.input')
     output_file = tmp_dir.joinpath(query_id + '.output')
@@ -401,8 +404,8 @@ def hmmscan_search(seq: str):
     try:
         # TODO redirect the stdout to a temporary file and return its content when there is no match.
         with open(stdout_file, 'w') as f:
-            utils.subprocess.run(command, shell=True, check=True, stdout=f)  ## FIXME
-    except utils.subprocess.CalledProcessError as e:
+            subprocess.run(command, shell=True, check=True, stdout=f)  ## FIXME
+    except subprocess.CalledProcessError as e:
         print('error when executing the command (code {})'.format(e))
         print(e.output)
         return None
