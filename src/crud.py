@@ -141,9 +141,13 @@ def get_families(page: int, page_size: int, habitat=None, microbial_source=None,
     if habitat is not None:
         query + 'general_envo_name == @habitat'
     if microbial_source is not None:
-        rank = database.gtdb_taxon_to_rank[microbial_source]
-        if query: query += ' and '
-        query += f'{rank} == @microbial_source'
+        try:
+            rank = database.gtdb_taxon_to_rank[microbial_source]
+        except KeyError:
+            gmsc_metadata = gmsc_metadata.iloc[:0]
+        else:
+            if query: query += ' and '
+            query += f'{rank} == @microbial_source'
     if sample is not None:
         if query: query += ' and '
         query += f'sample == @sample'
