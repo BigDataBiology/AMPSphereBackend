@@ -1,5 +1,4 @@
 from typing import List, Optional, Dict
-from xmlrpc.client import Boolean
 from pydantic import field_validator, ConfigDict, BaseModel
 
 
@@ -65,7 +64,7 @@ class Metadata(BaseModel):
     gene_sequence: str
     sample: str
     specI: Optional[str] = None
-    is_metagenomic: Boolean
+    is_metagenomic: bool
     geographic_location: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -153,26 +152,12 @@ class PagedAMPs(BaseModel):
 class FamilyDownloads(BaseModel):
     alignment: str
     sequences: str
-    # hmm_logo: str
     hmm_profile: str
-    # sequence_logo: str
     tree_figure: str
     tree_nwk: str
     model_config = ConfigDict(from_attributes=True)
 
 
-# not used for now.
-class FamilyFeatures(BaseModel):
-    MW: Dict[str, float]
-    Length: Dict[str, float]
-    Molar_extinction: Dict[str, Dict[str, float]]
-    Aromaticity: Dict[str, float]
-    GRAVY: Dict[str, float]
-    Instability_index: Dict[str, float]
-    Isoelectric_point: Dict[str, float]
-    Charge_at_pH_7: Dict[str, float]
-    Secondary_structure: Dict[str, Dict[str, float]]
-    model_config = ConfigDict(from_attributes=True)
 
 
 class Family(BaseModel):
@@ -193,12 +178,6 @@ class PagedFamilies(BaseModel):
 
 
 # Object for Download page ------------------------------------------------
-# class Download(BaseModel):
-#     List of strings
-#
-#     class Config:
-#         orm_mode = True
-
 
 class mmSeqsSearchResult(BaseModel):
     query_identifier: str
