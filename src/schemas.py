@@ -57,7 +57,6 @@ class AMPFeatures(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Object for AMP_card page ------------------------------------------------
 class Metadata(BaseModel):
     AMP: str
     GMSC_accession: str

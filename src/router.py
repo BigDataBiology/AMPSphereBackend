@@ -1,4 +1,3 @@
-from src.database import SessionLocal
 from typing import List, Dict
 from fastapi import Depends
 from fastapi.responses import FileResponse, JSONResponse

@@ -1,15 +1,5 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from src.utils import cfg
 import pandas as pd
 import numpy as np
-
-SQLALCHEMY_DATABASE_URL = "sqlite:///" + cfg['ampsphere_main_db']
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
 
 gtdb_taxon_to_rank = \
         pd.read_table('data/tables/GTDBTaxonRank.tsv',
@@ -41,5 +31,15 @@ gmsc_metadata['microbial_source_s'].replace(np.nan, None, inplace=True)
 number_genes_per_amp = gmsc_metadata.value_counts('AMP').to_dict()
 amp2gmsc = gmsc_metadata[['AMP']].groupby('AMP').groups
 
-amps = pd.read_csv('data/tables/AMP.tsv', sep='\t', index_col=0)
+amps = pd.read_csv(
+        'data/tables/AMP.tsv',
+        sep='\t',
+        index_col=0,
+        dtype={
+            'Antifam': 'category',
+            'RNAcode': 'category',
+            'metaproteomes': 'category',
+            'coordinates': 'category',
+        },
+        )
 amps.rename(columns={'Coordinates': 'coordinates'}, inplace=True)

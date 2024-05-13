@@ -10,7 +10,7 @@ from fastapi import HTTPException
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
 from Bio.pairwise2 import format_alignment
 
-from src import models, utils, database
+from src import utils, database, schemas
 
 
 def _page(items, page, page_size):
@@ -88,7 +88,7 @@ def get_amps(page: int = 0, page_size: int = 20, **kwargs):
     data = data.reset_index('accession').to_dict('records')
     data_as_obj = []
     for amp_obj in data:
-        amp_obj = models.AMP(**amp_obj)
+        amp_obj = schemas.AMP(**amp_obj)
         amp_obj.secondary_structure = None
         amp_obj.metadata = None
         amp_obj.num_genes = database.number_genes_per_amp.get(amp_obj.accession, 0)
@@ -101,8 +101,7 @@ def get_amp(accession: str):
         amp = database.amps.loc[accession]
     except KeyError:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    amp_obj = models.AMP(**amp.to_dict())
-    amp_obj.accession = accession
+    amp_obj = schemas.AMP(accession=accession, **amp.to_dict())
     amp_obj.metadata = get_amp_metadata(accession, page=0, page_size=5)
     amp_obj.secondary_structure = utils.get_secondary_structure(amp_obj.sequence)
     return amp_obj
@@ -120,7 +119,7 @@ def get_amp_metadata(accession: str,  page: int, page_size: int):
     for it in data:
         if pd.isna(it['latitude']): it['latitude'] = None
         if pd.isna(it['longitude']): it['longitude'] = None
-        data_obj.append(models.GMSCMetadata(**it))
+        data_obj.append(schemas.Metadata(**it))
     return mk_result(data_obj, len(query), page_size=page_size, page=page)
 
 def mk_result(data, total_items, page_size, page):
