@@ -57,25 +57,6 @@ taxonomy = pd.DataFrame({tax: row[:col_idx + 1] for row_idx, row in taxonomy.ite
 taxonomy = taxonomy.T[taxonomy_cols].reset_index()
 print(taxonomy)
 
-statistics = dict(
-    gmsc=0,
-    amp=0,
-    sample=0,
-    source_d=0,
-    source_p=0,
-    source_c=0,
-    source_o=0,
-    source_f=0,
-    source_g=0,
-    source_s=0,
-    geographic_location=0,
-    general_envo_name=0,
-    environment_material=0,
-    sphere=0,
-    family=0
-)
-print('done')
-
 
 output_dir = pathlib.Path(args.outdir)
 if not output_dir.is_dir():
@@ -90,13 +71,10 @@ AMP_table = AMP_table.drop(columns='family').merge(features, left_on=['accession
 AMP_cols += ['Antifam', 'RNAcode', 'metaproteomes', 'metatranscriptomes', 'Coordinates']
 AMP_table = AMP_table.merge(quality, left_on='accession', right_on='AMP')[AMP_cols]
 AMP_table.to_csv(output_dir.joinpath('AMP.tsv'), sep='\t', index=False)
-statistics['amp'] = AMP_table.accession.unique().shape[0]
-statistics['sphere'] = AMP_table.family.unique().shape[0]
-statistics['family'] = sum(AMP_table.family.value_counts() >= 8)
 del AMP_table, features, quality
 
 print('\t GMSC table...', end=' ', flush=True)
-metadata['source'] = metadata.apply(lambda row: row['source'] if row['is_metagenomic'] 
+metadata['source'] = metadata.apply(lambda row: row['source'] if row['is_metagenomic']
                 else ncbi_id_to_gtdb_tax[int(row['sample'].split('.')[0])], axis=1)
 GMSC_cols += metadata.columns.tolist()
 gmsc_table = gmsc_table.merge(metadata, left_on='accession', right_on='gmsc', how='outer')[GMSC_cols]
@@ -106,49 +84,10 @@ gmsc_table = gmsc_table.merge(taxonomy, left_on='source', right_on='index', how=
 gmsc_table = gmsc_table.drop(columns=['gmsc', 'amp', 'source'])
 gmsc_table.loc[gmsc_table.is_metagenomic == False, 'general_envo_name'] = 'Progenomes'
 gmsc_table.to_csv(output_dir.joinpath('GMSCMetadata.tsv'), sep='\t', index=False)
-"""
-    gmsc=0,
-    sample=0,
-    source_d=0,
-    source_p=0,
-    source_c=0,
-    source_o=0,
-    source_f=0,
-    source_g=0,
-    source_s=0, 
-    geographic_location=0,
-    general_envo_name=0,
-    environment_material=0,
-"""
-def n_unique(series): return series.unique().shape[0]
-statistics['gmsc'] = n_unique(gmsc_table.accession)
-statistics['sample'] = n_unique(gmsc_table['sample'])
-statistics['source_d'] = n_unique(gmsc_table.microbial_source_d)
-statistics['source_p'] = n_unique(gmsc_table.microbial_source_p)
-statistics['source_c'] = n_unique(gmsc_table.microbial_source_c)
-statistics['source_o'] = n_unique(gmsc_table.microbial_source_o)
-statistics['source_f'] = n_unique(gmsc_table.microbial_source_f)
-statistics['source_g'] = n_unique(gmsc_table.microbial_source_g)
-statistics['source_s'] = n_unique(gmsc_table.microbial_source_s)
-statistics['geographic_location'] = n_unique(gmsc_table.geographic_location)
-statistics['general_envo_name'] = n_unique(gmsc_table['general_envo_name'])
-statistics['environment_material'] = n_unique(gmsc_table.environment_material)
-
 del gmsc_table
 
 print('\t GTDBTaxonRank table...', end=' ', flush=True)
 taxonomy = taxonomy.set_index('index')
 rank = pd.DataFrame([{'gtdb_taxon': taxon, 'microbial_source_rank': col} for col in taxonomy.columns for taxon in taxonomy[col] if taxon])
 rank.drop_duplicates().dropna().reset_index().to_csv(output_dir.joinpath('GTDBTaxonRank.tsv'), sep='\t', index=False)
-del rank
 
-print('\t Statitics table...', end=' ', flush=True)
-pd.DataFrame(statistics, index=[0]).to_csv(output_dir.joinpath('Statistics.tsv'), sep='\t', index=False)
-print('done')
-
-# shutil.copy(metadata_file, pathlib.Path(output_dir.joinpath('Metadata.tsv')))
-
-# outfile = output_dir.joinpath(name + '.tsv')
-# print('Writing to {}...'.format(outfile), end=' ')
-# table.to_csv(outfile, sep='\t', index=False, header=False)
-# print('done')
