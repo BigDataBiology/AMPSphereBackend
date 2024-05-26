@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.database import engine
 from src.router import amp_router, family_router, default_router
 import os
 
