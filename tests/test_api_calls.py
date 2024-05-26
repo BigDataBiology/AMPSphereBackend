@@ -44,6 +44,23 @@ def test_microbial_source_filter():
     assert [x['accession'] for x in data['data']] == ['AMP10.224_819', 'AMP10.723_664']
 
 
+def test_exact_sequence_search():
+    q = 'KKVKSIFKKALAMMGENEVKAWGIGIK'
+    data = client.get(f'v1/search/sequence-match?query={q}').json()
+    assert data['query'] == q
+    assert data['result'] == 'AMP10.000_000'
+
+    # Test ignoring an initial M
+    q = 'MKKVKSIFKKALAMMGENEVKAWGIGIK'
+    data = client.get(f'v1/search/sequence-match?query={q}').json()
+    assert data['query'] == q
+    assert data['result'] == 'AMP10.000_000'
+
+    q = 'KAAAAAAAAAAAAAAAAAAAAAAAAIK'
+    data = client.get(f'v1/search/sequence-match?query={q}').json()
+    assert data['query'] == q
+    assert data['result'] is None
+
 
 inputs = pd.read_table('tests/inputs.tsv', sep='\t').fillna('')
 inputs['Test path'] = inputs.apply(

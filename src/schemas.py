@@ -4,7 +4,7 @@ from pydantic import field_validator, ConfigDict, BaseModel
 
 # Define JSON objects to be returned to frontend here.
 
-# Plot objects ------------------------------------------------------
+
 class LinePlotData(BaseModel):
     type: str
     x: List[str]
@@ -239,3 +239,7 @@ class Filters(BaseModel):
     sample_genome: List[str]
     microbial_source: List[str]
     model_config = ConfigDict(from_attributes=True)
+
+class ExactMatchResult(BaseModel):
+    query: str
+    result: Optional[str]

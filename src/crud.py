@@ -395,3 +395,17 @@ def hmmscan_search(seq: str):
         df.columns = columns
         records = df.to_dict(orient='records')
         return records
+
+def exact_sequence_match(seq: str):
+    if len(seq) < 8 or len(seq) > 98:
+        return None
+    seq = seq.replace(' ', '')
+    amp = database.amps.query('sequence == @seq')
+    if len(amp) == 0 and seq[0] == 'M':
+        seq = seq[1:]
+        amp = database.amps.query('sequence == @seq')
+    if amp.shape[0] == 0:
+        return None
+    else:
+        return amp.index[0]
+

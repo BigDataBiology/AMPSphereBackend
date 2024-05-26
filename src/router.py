@@ -228,3 +228,13 @@ def mmseqs_search(query: str = 'KKVKSIFKKALAMMGENEVKAWGIGIK'):
                     summary=default_route_summary)
 def hmmscan_search(query: str = 'KKVKSIFKKALAMMGENEVKAWGIGIK'):
     return crud.hmmscan_search(query)
+
+@default_router.get(path="/search/sequence-match",
+                    response_model=schemas.ExactMatchResult,
+                    response_class=JSONResponse,
+                    summary=default_route_summary)
+def sequence_match(query: str = 'KKVKSIFKKALAMMGENEVKAWGIGIK'):
+    return schemas.ExactMatchResult(
+        query=query,
+        result=crud.exact_sequence_match(query)
+    )
