@@ -16,13 +16,13 @@ app = FastAPI(
     description=description,
     version="0.1.0",
     contact={
-        "name": "Hui Chong",
-        "url": "adebc.github.io",
-        "email": "huichong.me@gmail.com",
+        "name": "Luis Pedro Coelho",
+        "url": "https://luispedro.org",
+        "email": "luis@luispedro.org",
     },
     license_info={
         "name": "MIT",
-        "url": "https://github.com/BigDataBiology/AMPSphereWebsite/blob/main/LICENSE",
+        "url": "https://github.com/BigDataBiology/AMPSphereBackend/blob/main/COPYING.MIT",
     },
     docs_url='/',
     redoc_url='/redoc',
