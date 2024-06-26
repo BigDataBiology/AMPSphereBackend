@@ -5,6 +5,7 @@ import types
 import uuid
 from datetime import datetime
 
+import polars as pl
 import pandas as pd
 from fastapi import HTTPException
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING
@@ -15,6 +16,12 @@ from src import utils, database, schemas
 
 def _page(items, page, page_size):
     return items[page * page_size: (page + 1) * page_size]
+
+def _accession_to_ix(accession):
+    try:
+        return int(accession.split('.')[1])
+    except IndexError:
+        raise HTTPException(status_code=400, detail='invalid accession received.')
 
 def get_filtered_amps(**criteria):
     """
@@ -32,31 +39,32 @@ def get_filtered_amps(**criteria):
         pI_interval: str = None,
         charge_interval: str = None,
     """
-    amps = database.amps
+    amps = database.amps.lazy()
     subquery = None
     criteria = {key: value for key, value in criteria.items() if value}
 
     for filter, value in criteria.items():
         if filter in {'habitat', 'sample_genome'}:
             if subquery is None:
-                subquery = database.gmsc_metadata
+                subquery = database.gmsc_metadata.lazy()
             col = {
                 'habitat': 'general_envo_name',
                 'sample_genome': 'sample'
             }[filter]
-            subquery = subquery.query(f'{col} == @value')
+            subquery = subquery.filter(pl.col(col) == value)
         elif filter == 'microbial_source':
             if value not in database.gtdb_taxon_to_rank:
                 raise HTTPException(status_code=400, detail='wrong taxonomy name provided.')
             rank = database.gtdb_taxon_to_rank[value]
             if subquery is None:
-                subquery = database.gmsc_metadata
-            subquery = subquery.query(f'{rank} == @value')
-
+                subquery = database.gmsc_metadata.lazy()
+            subquery = subquery.filter(pl.col(rank) == value)
         elif filter == 'exp_evidence' and value == 'Passed':
-            amps = amps.query('metaproteomes == "Passed" or metatranscriptomes == "Passed"')
+            amps = amps.filter(
+                    pl.col('metaproteomes').or_(
+                        pl.col('metatranscriptomes')))
         elif filter == 'exp_evidence' and value == 'Failed':
-            amps = amps.query('metaproteomes == "Failed" and metatranscriptomes == "Failed"')
+            amps = amps.filter(metaproteomes=False, metatranscriptomes=False)
         elif filter in {'family', 'antifam', 'RNAcode', 'coordinates'}:
             col = {
                 'family': 'family',
@@ -64,7 +72,7 @@ def get_filtered_amps(**criteria):
                 'RNAcode': 'RNAcode',
                 'coordinates': 'coordinates'
                 }[filter]
-            amps = amps.query(f'{col} == @value')
+            amps = amps.filter(pl.col(col) == value)
         elif filter in {'pep_length_interval', 'mw_interval', 'pI_interval', 'charge_interval'}:
             min_v, max_v = value.split(',')
             min_v = float(min_v)
@@ -75,19 +83,22 @@ def get_filtered_amps(**criteria):
                     'pI_interval': 'isoelectric_point',
                     'charge_interval': 'charge'
                     }[filter]
-            amps = amps.query(f'{min_v} <= {col} <= {max_v}')
+
+            amps = amps.filter(
+                    (min_v <= pl.col(col)) & (pl.col(col) <= max_v))
     if subquery is not None:
-        selected = set(subquery['AMP'])
-        amps = amps[amps.index.map(selected.__contains__)]
-    return amps
+        selected = set(subquery.select('AMP').collect()['AMP'])
+        amps = amps.filter(pl.col('accession').is_in(selected))
+    return amps.collect()
 
 
 def get_amps(page: int = 0, page_size: int = 20, **kwargs):
     query = get_filtered_amps(**kwargs)
     data = _page(query, page, page_size)
-    data = data.reset_index('accession').to_dict('records')
+    data = data.to_dicts()
     data_as_obj = []
     for amp_obj in data:
+        _amp_qc_to_string(amp_obj)
         amp_obj = schemas.AMP(**amp_obj)
         amp_obj.secondary_structure = None
         amp_obj.metadata = None
@@ -95,30 +106,37 @@ def get_amps(page: int = 0, page_size: int = 20, **kwargs):
         data_as_obj.append(amp_obj)
     return mk_result(data_as_obj, len(query), page=page, page_size=page_size)
 
+def _amp_qc_to_string(amp):
+    amp['Antifam'] = ('Passed' if amp['Antifam'] else 'Failed')
+    amp['metaproteomes'] = ('Passed' if amp['metaproteomes'] else 'Failed')
+    amp['metatranscriptomes'] = ('Passed' if amp['metatranscriptomes'] else 'Failed')
+    amp['coordinates'] = ('Passed' if amp['coordinates'] else 'Failed')
 
 def get_amp(accession: str):
     try:
-        amp = database.amps.loc[accession]
+        amp = database.amps.row(_accession_to_ix(accession), named=True)
     except KeyError:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    amp_obj = schemas.AMP(accession=accession, **amp.to_dict())
+    _amp_qc_to_string(amp)
+    amp_obj = schemas.AMP(**amp)
     amp_obj.metadata = get_amp_metadata(accession, page=0, page_size=5)
     amp_obj.secondary_structure = utils.get_secondary_structure(amp_obj.sequence)
     return amp_obj
 
 
 def get_amp_metadata(accession: str,  page: int, page_size: int):
-    query = database.amp2gmsc.get(accession, [])
+    query = database.gmsc_metadata.filter(pl.col('AMP') == accession)
 
     if len(query) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    query = database.gmsc_metadata.loc[query]
     data = _page(query, page, page_size)
-    data = data.reset_index().rename(columns={'accession':'GMSC_accession'}).to_dict('records')
+    data = data.rename({'accession':'GMSC_accession'}).to_dicts()
     data_obj = []
     for it in data:
-        if pd.isna(it['latitude']): it['latitude'] = None
-        if pd.isna(it['longitude']): it['longitude'] = None
+        if it['geographic_location'] is None:
+            it['geographic_location'] = ''
+        if it['environment_material'] is None:
+            it['environment_material'] = ''
         data_obj.append(schemas.Metadata(**it))
     return mk_result(data_obj, len(query), page_size=page_size, page=page)
 
@@ -134,26 +152,27 @@ def mk_result(data, total_items, page_size, page):
 
 
 def get_families(page: int, page_size: int, habitat=None, microbial_source=None, sample=None):
-    gmsc_metadata = database.gmsc_metadata
-    query = ''
+    gmsc_metadata = database.gmsc_metadata.lazy()
 
     if habitat is not None:
-        query + 'general_envo_name == @habitat'
+        gmsc_metadata = gmsc_metadata.filter(
+                pl.col('general_envo_name') == habitat)
     if microbial_source is not None:
         try:
             rank = database.gtdb_taxon_to_rank[microbial_source]
         except KeyError:
-            gmsc_metadata = gmsc_metadata.iloc[:0]
+            gmsc_metadata = gmsc_metadata.filter(pl.col('AMP') == 'x')
         else:
-            if query: query += ' and '
-            query += f'{rank} == @microbial_source'
+            gmcs_metadata = gmsc_metadata.filter(
+                    pl.col(rank) == microbial_source)
     if sample is not None:
-        if query: query += ' and '
-        query += f'sample == @sample'
-    if query:
-        gmsc_metadata = gmsc_metadata.query(query)
-    sel_amps = set(gmsc_metadata['AMP'])
-    sel_families = sorted(set(database.amps.loc[sorted(sel_amps)]['family']))
+        gmsc_metadata = gmsc_metadata.filter(pl.col('sample') == sample)
+    sel_amps = set(gmsc_metadata.select(pl.col('AMP')).collect()['AMP'])
+    sel_families = database.amps.select([
+        pl.col('family'),
+        pl.col('accession'),
+        ]).filter(pl.col('accession').is_in(sel_amps))['family'].unique()
+    sel_families = sorted(sel_families)
     accessions = _page(sel_families, page, page_size)
     data = [get_family(accession) for accession in accessions]
     return mk_result(data, len(sel_families), page=page, page_size=page_size)
@@ -163,7 +182,7 @@ def get_family(accession: str):
     return dict(
         accession=accession,
         consensus_sequence=utils.cal_consensus_seq(accession),
-        num_amps=database.amps.eval('family == @accession').sum(),
+        num_amps=database.amps.filter(pl.col('family') == accession).shape[0],
         feature_statistics=get_fam_features(accession),
         distributions=get_distributions(accession),
         associated_amps=get_associated_amps(accession),
@@ -173,15 +192,15 @@ def get_family(accession: str):
 
 def get_amp_features(accession: str):
     try:
-        seq = database.amps.loc[accession, 'sequence']
+        seq = database.amps['sequence'][_accession_to_ix(accession)]
     except KeyError:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     return utils.get_amp_features(seq)
 
 def get_fam_features(accession: str):
-    amps = database.amps.query('family == @accession')
-    features = amps.sequence.map(utils.get_amp_features).to_list()
-    accessions = amps.index
+    amps = database.amps.filter(pl.col('family') == accession)
+    features = [ utils.get_amp_features(seq) for seq in amps['sequence']]
+    accessions = amps['accession']
     if len(features) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     else:
@@ -190,16 +209,16 @@ def get_fam_features(accession: str):
 
 
 def get_associated_amps(accession):
-    return database.amps.query('family == @accession').index.to_list()
+    return list(database.amps.filter(pl.col('family') == accession)['accession'])
 
 
 def get_distributions(accession: str):
-    accession
     if accession.startswith('AMP'):
-        raw_data = database.gmsc_metadata.loc[database.amp2gmsc.get(accession, [])]
+        raw_data = database.gmsc_metadata.filter(pl.col('AMP') == accession)
     elif accession.startswith('SPHERE'):
-        sel_amps = database.amps.query('family == @accession').index
-        raw_data = database.gmsc_metadata[database.gmsc_metadata['AMP'].map(set(sel_amps).__contains__)]
+        sel_amps = database.amps.filter(pl.col('family') == accession)['accession']
+        raw_data = database.gmsc_metadata.filter(
+                pl.col('AMP').is_in(sel_amps))
     else:
         raw_data = []
     if len(raw_data) == 0:
@@ -208,9 +227,8 @@ def get_distributions(accession: str):
 
 
 def get_fam_downloads(accession):
-    # TODO change prefix here for easier maintenance.
-    in_db = database.amps.eval('family == @accession').any()
-    if not in_db:
+    in_db = database.amps.select(pl.col('family')).filter(family=accession)
+    if not len(in_db):
         raise HTTPException(status_code=400, detail='invalid accession received.')
     else:
         BASE_URL = 'https://ampsphere-api.big-data-biology.org/v1'
@@ -226,28 +244,26 @@ def get_fam_downloads(accession):
 
 
 def get_statistics():
-    from collections import Counter
-    # Using counter is ~3x faster than using pandas' value_counts
     return {
             'num_genes': len(database.gmsc_metadata),
             'num_amps':  len(database.amps),
-            'num_families': sum(c >= 8 for c in Counter(database.amps['family']).values()),
-            'num_habitats': len(set(database.gmsc_metadata['general_envo_name'])),
-            'num_genomes':     len(set(database.gmsc_metadata.query('~is_metagenomic')['sample'])),
-            'num_metagenomes': len(set(database.gmsc_metadata.query(' is_metagenomic')['sample'])),
+            'num_families': database.amps['family'].value_counts().filter(pl.col('count') >= 8).shape[0],
+            'num_habitats': database.gmsc_metadata.n_unique('general_envo_name'),
+            'num_genomes':     database.gmsc_metadata.filter(is_metagenomic=False).n_unique('sample'),
+            'num_metagenomes': database.gmsc_metadata.filter(is_metagenomic=True).n_unique('sample'),
     }
 
 def _all_used_taxa():
     used = set()
     for rank in 'pcofgs':
-        used.update(database.gmsc_metadata[f'microbial_source_{rank}'].dropna())
+        used.update(database.gmsc_metadata[f'microbial_source_{rank}'])
     # If a genus is present, but all its elements are from the same species, remove it
     nr_sp_g = database.gmsc_metadata\
                 [['microbial_source_g', 'microbial_source_s']]\
-                .drop_duplicates()\
-                .groupby('microbial_source_g')\
-                .size()
-    used -= set(nr_sp_g[nr_sp_g <= 1].index)
+                .unique()\
+                .group_by('microbial_source_g')\
+                .len()
+    used -= set(nr_sp_g.filter(pl.col('len') <= 1)['microbial_source_g'])
     used = tuple(sorted(used))
     return used
 
@@ -259,17 +275,17 @@ def get_all_options():
     if _all_options is None:
         habitat = list(database.gmsc_metadata['general_envo_name'].unique())
         quality = list(database.amps['RNAcode'].unique())
-        peplen_min = database.amps.sequence.str.len().min()
-        peplen_max = database.amps.sequence.str.len().max()
+        peplen_min = database.amps['sequence'].map_elements(len, return_dtype=int).min()
+        peplen_max = database.amps['sequence'].map_elements(len, return_dtype=int).max()
 
-        mw_min = database.amps.molecular_weight.min()
-        mw_max = database.amps.molecular_weight.max()
+        mw_min = database.amps['molecular_weight'].min()
+        mw_max = database.amps['molecular_weight'].max()
 
-        pI_min = database.amps.isoelectric_point.min()
-        pI_max = database.amps.isoelectric_point.max()
+        pI_min = database.amps['isoelectric_point'].min()
+        pI_max = database.amps['isoelectric_point'].max()
 
-        charge_min = database.amps.charge.min()
-        charge_max = database.amps.charge.max()
+        charge_min = database.amps['charge'].min()
+        charge_max = database.amps['charge'].max()
 
         round_floor = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_FLOOR)
         round_ceiling = lambda x: Decimal(x).quantize(Decimal("0."), rounding=ROUND_CEILING)
@@ -345,7 +361,12 @@ def mmseqs_search(seq: str):
         if df.shape[0] > 0:
             df['alignment_strings'] = df[['seq_query', 'seq_target', 'bit_score', 'domain_start_position_target',
                                           'domain_end_position_target']].apply(format_alignment0, axis=1)
-            df['family'] = df['target_identifier'].map(database.amps['family'])
+            def _amp_to_family(amp):
+                try:
+                    return database.amps.filter(pl.col('accession') == amp)['family'][0]
+                except IndexError:
+                    return None
+            df['family'] = df['target_identifier'].map(_amp_to_family)
         records = df.to_dict(orient='records')
         return records
 
@@ -400,12 +421,12 @@ def exact_sequence_match(seq: str):
     if len(seq) < 8 or len(seq) > 98:
         return None
     seq = seq.replace(' ', '')
-    amp = database.amps.query('sequence == @seq')
+    amp = database.amps.filter(pl.col('sequence') == seq)
     if len(amp) == 0 and seq[0] == 'M':
         seq = seq[1:]
-        amp = database.amps.query('sequence == @seq')
+        amp = database.amps.filter(pl.col('sequence') == seq)
     if amp.shape[0] == 0:
         return None
     else:
-        return amp.index[0]
+        return amp['accession'][0]
 

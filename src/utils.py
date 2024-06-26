@@ -3,6 +3,7 @@ import pathlib
 
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 import pandas as pd
+import polars as pl
 from Bio import AlignIO
 from Bio.Align import AlignInfo
 
@@ -156,11 +157,14 @@ def compute_distribution_from_query_data(query_data):
             habitat=empty_sunburst,
             geo=empty_bubblemap
         )
-    metadata = query_data.copy()
-    metadata['latitude'] = metadata['latitude'].round(1)
-    metadata['longitude'] = metadata['longitude'].round(1)
-    metadata['habitat_type'] = pd.Categorical(metadata['general_envo_name'].str.split(':').str[0])
+    metadata = query_data.with_columns([
+        pl.col('latitude').round(1).alias('latitude'),
+        pl.col('longitude').round(1).alias('longitude'),
+        query_data['general_envo_name'].map_elements(lambda g: g.split(':')[0], return_dtype=pl.String).alias('habitat_type'),
 
+        ])
+
+    metadata = metadata.to_pandas()
     geo = metadata[['AMP', 'latitude', 'longitude', 'habitat_type']].\
         groupby(['latitude', 'longitude', 'habitat_type'], as_index=False, observed=True).size()
     names = {'latitude': 'lat', 'longitude': 'lon', 'AMP': 'size'}
