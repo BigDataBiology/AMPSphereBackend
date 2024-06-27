@@ -14,8 +14,8 @@ def test_recursive_round3():
 
 def test_compute_distribution_from_query_data():
     accession = 'SPHERE-III.000_264'
-    sel_amps = database.amps.filter(family=accession)['accession']
-    raw_data = database.gmsc_metadata.filter(pl.col("AMP").is_in(sel_amps))
+    raw_data = database._make_gmsc_metadata_df(
+                database.db.execute('SELECT * FROM Metadata WHERE AMP IN (SELECT accession FROM AMP WHERE FAMILY = ?);', [accession]).fetchall())
     dist = utils.compute_distribution_from_query_data(raw_data)
     assert sum(dist['microbial_source']['values']) == len(raw_data)
     assert sum(dist['habitat']['values']) == len(raw_data)

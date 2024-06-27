@@ -23,6 +23,25 @@ def _accession_to_ix(accession):
     except IndexError:
         raise HTTPException(status_code=400, detail='invalid accession received.')
 
+
+def _get_amp_origin_filter(criteria):
+    qs = []
+    args = []
+    if h := criteria.get('habitat'):
+       qs.append('general_envo_name = ?')
+       args.append(h)
+    if s := criteria.get('sample_genome'):
+       qs.append('sample = ?')
+       args.append(s)
+    if t := criteria.get('microbial_source'):
+        rank = database.gtdb_taxon_to_rank.get(t)
+        if rank is None:
+            raise HTTPException(status_code=400, detail='invalid microbial source received.')
+        qs.append(f'{rank} = ?')
+        args.append(t)
+    if qs:
+        return [h[0] for h in database.db.execute('SELECT AMP FROM Metadata WHERE ' + ' AND '.join(qs) + ';', args).fetchall()]
+    return None
 def get_filtered_amps(**criteria):
     """
     Possible criteria:
@@ -40,26 +59,11 @@ def get_filtered_amps(**criteria):
         charge_interval: str = None,
     """
     amps = database.amps.lazy()
-    subquery = None
+    subquery = _get_amp_origin_filter(criteria)
     criteria = {key: value for key, value in criteria.items() if value}
 
     for filter, value in criteria.items():
-        if filter in {'habitat', 'sample_genome'}:
-            if subquery is None:
-                subquery = database.gmsc_metadata.lazy()
-            col = {
-                'habitat': 'general_envo_name',
-                'sample_genome': 'sample'
-            }[filter]
-            subquery = subquery.filter(pl.col(col) == value)
-        elif filter == 'microbial_source':
-            if value not in database.gtdb_taxon_to_rank:
-                raise HTTPException(status_code=400, detail='wrong taxonomy name provided.')
-            rank = database.gtdb_taxon_to_rank[value]
-            if subquery is None:
-                subquery = database.gmsc_metadata.lazy()
-            subquery = subquery.filter(pl.col(rank) == value)
-        elif filter == 'exp_evidence' and value == 'Passed':
+        if filter == 'exp_evidence' and value == 'Passed':
             amps = amps.filter(
                     pl.col('metaproteomes').or_(
                         pl.col('metatranscriptomes')))
@@ -87,8 +91,7 @@ def get_filtered_amps(**criteria):
             amps = amps.filter(
                     (min_v <= pl.col(col)) & (pl.col(col) <= max_v))
     if subquery is not None:
-        selected = set(subquery.select('AMP').collect()['AMP'])
-        amps = amps.filter(pl.col('accession').is_in(selected))
+        amps = amps.filter(pl.col('accession').is_in(subquery))
     return amps.collect()
 
 
@@ -102,7 +105,7 @@ def get_amps(page: int = 0, page_size: int = 20, **kwargs):
         amp_obj = schemas.AMP(**amp_obj)
         amp_obj.secondary_structure = None
         amp_obj.metadata = None
-        amp_obj.num_genes = database.number_genes_per_amp.get(amp_obj.accession, 0)
+        amp_obj.num_genes = database.number_genes_per_amp(amp_obj.accession)
         data_as_obj.append(amp_obj)
     return mk_result(data_as_obj, len(query), page=page, page_size=page_size)
 
@@ -125,11 +128,12 @@ def get_amp(accession: str):
 
 
 def get_amp_metadata(accession: str,  page: int, page_size: int):
-    query = database.gmsc_metadata.filter(pl.col('AMP') == accession)
+    query = database.db.execute('SELECT * FROM Metadata WHERE AMP = ?', [accession]).fetchall()
 
     if len(query) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
     data = _page(query, page, page_size)
+    data = database._make_gmsc_metadata_df(data)
     data = data.rename({'accession':'GMSC_accession'}).to_dicts()
     data_obj = []
     for it in data:
@@ -152,22 +156,11 @@ def mk_result(data, total_items, page_size, page):
 
 
 def get_families(page: int, page_size: int, habitat=None, microbial_source=None, sample=None):
-    gmsc_metadata = database.gmsc_metadata.lazy()
+    sel_amps = _get_amp_origin_filter({
+        'habitat': habitat,
+        'microbial_source': microbial_source,
+        'sample_genome': sample})
 
-    if habitat is not None:
-        gmsc_metadata = gmsc_metadata.filter(
-                pl.col('general_envo_name') == habitat)
-    if microbial_source is not None:
-        try:
-            rank = database.gtdb_taxon_to_rank[microbial_source]
-        except KeyError:
-            gmsc_metadata = gmsc_metadata.filter(pl.col('AMP') == 'x')
-        else:
-            gmcs_metadata = gmsc_metadata.filter(
-                    pl.col(rank) == microbial_source)
-    if sample is not None:
-        gmsc_metadata = gmsc_metadata.filter(pl.col('sample') == sample)
-    sel_amps = set(gmsc_metadata.select(pl.col('AMP')).collect()['AMP'])
     sel_families = database.amps.select([
         pl.col('family'),
         pl.col('accession'),
@@ -211,18 +204,17 @@ def get_fam_features(accession: str):
 def get_associated_amps(accession):
     return list(database.amps.filter(pl.col('family') == accession)['accession'])
 
-
 def get_distributions(accession: str):
     if accession.startswith('AMP'):
-        raw_data = database.gmsc_metadata.filter(pl.col('AMP') == accession)
+        raw_data = database.db.execute('SELECT * FROM Metadata WHERE AMP = ?;', [accession]).fetchall()
     elif accession.startswith('SPHERE'):
-        sel_amps = database.amps.filter(pl.col('family') == accession)['accession']
-        raw_data = database.gmsc_metadata.filter(
-                pl.col('AMP').is_in(sel_amps))
+        raw_data = database.db.execute(
+                'SELECT * FROM Metadata WHERE AMP IN (SELECT Accession FROM AMP WHERE FAMILY = ?);', [accession]).fetchall()
     else:
         raw_data = []
     if len(raw_data) == 0:
         raise HTTPException(status_code=400, detail='invalid accession received.')
+    raw_data = database._make_gmsc_metadata_df(raw_data)
     return utils.compute_distribution_from_query_data(raw_data)
 
 
@@ -245,25 +237,27 @@ def get_fam_downloads(accession):
 
 def get_statistics():
     return {
-            'num_genes': len(database.gmsc_metadata),
+            'num_genes': database.db.execute('SELECT COUNT(*) FROM Metadata').fetchall()[0][0],
             'num_amps':  len(database.amps),
             'num_families': database.amps['family'].value_counts().filter(pl.col('count') >= 8).shape[0],
-            'num_habitats': database.gmsc_metadata.n_unique('general_envo_name'),
-            'num_genomes':     database.gmsc_metadata.filter(is_metagenomic=False).n_unique('sample'),
-            'num_metagenomes': database.gmsc_metadata.filter(is_metagenomic=True).n_unique('sample'),
+            'num_habitats': database.db.execute('SELECT COUNT(DISTINCT general_envo_name) FROM Metadata').fetchall()[0][0],
+            'num_genomes':     database.db.execute('SELECT COUNT(DISTINCT sample) FROM Metadata WHERE is_metagenomic == "False"').fetchall()[0][0],
+            'num_metagenomes': database.db.execute('SELECT COUNT(DISTINCT sample) FROM Metadata WHERE is_metagenomic == "True"').fetchall()[0][0],
     }
 
 def _all_used_taxa():
     used = set()
+
     for rank in 'pcofgs':
-        used.update(database.gmsc_metadata[f'microbial_source_{rank}'])
+        used.update(
+            [t[0] for t in database.db.execute(f'SELECT DISTINCT microbial_source_{rank} FROM Metadata;').fetchall()])
     # If a genus is present, but all its elements are from the same species, remove it
-    nr_sp_g = database.gmsc_metadata\
-                [['microbial_source_g', 'microbial_source_s']]\
-                .unique()\
-                .group_by('microbial_source_g')\
-                .len()
-    used -= set(nr_sp_g.filter(pl.col('len') <= 1)['microbial_source_g'])
+    to_remove = set([g for (g,) in database.db.execute('''SELECT microbial_source_g
+                        FROM (SELECT DISTINCT microbial_source_g, microbial_source_s FROM Metadata)
+                        GROUP BY microbial_source_g
+                        HAVING COUNT(microbial_source_s) <= 1;
+                        ''').fetchall()])
+    used -= to_remove
     used = tuple(sorted(used))
     return used
 
@@ -273,7 +267,8 @@ _all_options = None
 def get_all_options():
     global _all_options
     if _all_options is None:
-        habitat = list(database.gmsc_metadata['general_envo_name'].unique())
+        habitat = [el[0] for el in
+                    database.db.execute('SELECT DISTINCT general_envo_name FROM Metadata').fetchall()]
         quality = list(database.amps['RNAcode'].unique())
         peplen_min = database.amps['sequence'].map_elements(len, return_dtype=int).min()
         peplen_max = database.amps['sequence'].map_elements(len, return_dtype=int).max()
@@ -305,7 +300,8 @@ def entity_in_db(entity_type, accession):
     if entity_type == 'family':
         return accession in database.amps['family'].values
     if entity_type in {'sample', 'genome'}:
-        return accession in database.gmsc_metadata['sample'].values
+        any_hit = database.db.execute('SELECT * FROM Metadata WHERE sample = ? LIMIT 1;', [accession]).fetchall()
+        return bool(any_hit)
     return False
 
 
