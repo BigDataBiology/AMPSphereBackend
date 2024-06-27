@@ -92,10 +92,15 @@ def metadata(accession: str = 'AMP10.000_000',
                 response_class=JSONResponse,
                 summary=default_route_summary)
 def coprediction(accession: str = 'AMP10.000_000'):
-    r = database.coprediction.get(accession, None)
-    if r is None:
+    try:
+        start,ix = accession.split('.')
+        if start != 'AMP10':
+            raise HTTPException(status_code=400, detail='invalid accession received.')
+        ix = int(ix)
+        r = database.coprediction[ix]
+    except:
         raise HTTPException(status_code=400, detail='invalid accession received.')
-    return [{'predictor': k, 'value': v} for k, v in r.items()]
+    return [{'predictor': k, 'value': v} for k, v in zip(database.COPREDICTION_COLUMNS, r)]
 
 family_router = APIRouter(
     prefix=version + '/families',

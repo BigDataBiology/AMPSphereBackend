@@ -2,18 +2,24 @@ import polars as pl
 import pandas as pd
 import numpy as np
 import sqlite3
+from os import path
 
 gtdb_taxon_to_rank = \
         pd.read_table('data/tables/GTDBTaxonRank.tsv',
                       index_col=0, usecols=(1,2)
                   ).squeeze().to_dict()
 
+COPREDICTION_COLUMNS = ['APIN', 'AMPScanner2', 'AMPlify', 'ampir', 'amPEPpy', 'AI4AMP', 'Macrel']
 
-selectedcoprediction = \
-        pd.read_table('data/tables/AMP_coprediction_AMPSphere.tsv.xz',
-            index_col=0
-        ).to_dict('index')
-
+if not path.exists('data/pre_computed/AMP_coprediction_AMPSphere.pkl'):
+    coprediction_table = \
+            pd.read_table('data/tables/AMP_coprediction_AMPSphere.tsv.xz',
+                index_col=0
+            )
+    assert coprediction_table .columns.tolist() == COPREDICTION_COLUMNS
+    np.save('data/pre_computed/AMP_coprediction_AMPSphere.npy', coprediction_table .values)
+    del coprediction_table
+coprediction = np.load('data/pre_computed/AMP_coprediction_AMPSphere.npy')
 
 db = sqlite3.connect('./data/ampsphere_main_db/AMPSphere_latest.sqlite', check_same_thread=False)
 
