@@ -197,10 +197,12 @@ def in_db(entity_type: str = 'family',
 _DOWNLOAD_FILE_PATH = {
         'AMPSphere_latest.sqlite':      'ampsphere_main_db/AMPSphere_latest.sqlite',
         'AMPSphere_latest.mmseqsdb':    'mmseqs_db/AMPSphere_latest.mmseqsdb',
+        'AMPSphere_latest.mmseqsdb.tar.xz':    'AMPSphere_latest.mmseqsdb.tar.xz',
         'AMPSphere_latest.hmm':         'hmmprofile_db/AMPSphere_latest.hmm',
 
         'AMP.tsv':                      'tables/AMP.tsv',
         'GMSCMetadata.tsv':             'tables/GMSCMetadata.tsv',
+        'amp_density_per_species_and_sample.tsv.gz': 'data_folder/species_amp_density_per_sample.tsv.gz',
 }
 
 @default_router.get(path="/downloads",
